@@ -3,7 +3,7 @@ run_pyclone <- function(x){
   # run the script in each directory and go back to the original wd
   setwd(x)
   if(!file.exists("pyclone_output.tsv"))
-    tryCatch( system("bash ../pyclone.sh ")
+    tryCatch( system("bash ../pyclone_refits/pyclone.sh ")
       ,finally = setwd("..")
     ) 
   else 
