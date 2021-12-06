@@ -38,7 +38,7 @@ table_runs = easypar::run(FUN =
     require(dplyr)
     print(i)
 
-    source("/Users/salvatore.milite/work/Trieste/analysis/overdispersion/weme_test_BB_B/sampler.R")
+    source("sampler.R")
 
     # overdispersion = runif(1, 0.001, 0.01)
     overdispersion = rgamma(1, shape = shape, rate = rate)
