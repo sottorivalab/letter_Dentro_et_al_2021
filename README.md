@@ -1,4 +1,7 @@
 # letter_Dentro_et_al_2021
+
+### General content
+
 Code used to generate figures and results for the response letter to Dentro et al. 2021
 
 The repo contains the following files:
@@ -8,7 +11,9 @@ The repo contains the following files:
 * `figure3.R`: Code to generate figure 3
 * `example_simulated`: a directory with all the code to run the simulated weme example using some tools from the original PCWAG consensus pipeline, all the information to run the example are in the `Example_simulated.Rmd` file
 * `weme_test_BB_B`: in this directory you can find the code to reproduce the example and the simulation done in figure 2 of the letter, all the information and the code to run a minimal example are contained in the `CC_overdispersion.Rmd` Rmarkdown. The file `runner.R` actually runs the whole simulation and plots the output (Figure 2), the only input needed id the histogram of rho values estimated from the data that is automatically loaded from the parent directory.
+* `pyclone_refits`: a direectory with the scripts to rerun the pyclone inference as done in the letter, more information below.
 
+### Germline Analysis
 
 For the germline analysis the function `generate_report_overdispersion` provides a complete report for overdispersion, with the 6 plots included in the Supplementary Data and binomial and beta-binomial MLE paramters. The input requires 5 objects that can be obtained from the PCWAG data release:
 
@@ -40,5 +45,39 @@ res$BBMIX
 res$BMIX
 
 ```
+### Pyclone fit
+
+Pyclone fits have the same inputs as the germline overdispersion analysis, in particular for each sample a *snvs* and *meta* file is needed as an input.
+First we need to generate a valid input file for pyclone
+
+```{R}
+require(dplyr)
+
+source("pyclone_refits/prepare_pyclone.R")
+
+inp <- format_to_pyclone(snvs, meta)
+
+inp %>% head()
+
+```
+
+Then we have to create a suitable directory structure, we assume that the varibale `name` stores the id of the sample
+
+```{R}
+
+dir.create(name, showWarnings = F)
+write.table(x, file = paste0("./", name, "/pyclone_input.tsv"), sep = "\t", row.names = F, quote = F)
+
+```
+
+The script to run the pyclone analysis are then stored in the `run_pyclone.R` file
+
+```{R}
+
+source("pyclone_refits/run_pyclone.R")
+
+run_pyclone(name) # generate pyclone_outputplot_pyclone.tsv file 
+plot_pyclone(name) # generate pyclone_plot.pdf file 
 
 
+```
