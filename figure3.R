@@ -81,6 +81,9 @@ p3_supp <- ggplot(data = p3_1_df, aes(x = ccf.y %>% as.numeric, fill = cluster_i
   ylab("Counts") + ggtitle("PCAWG consensus clustering")
 
 
+p3_supp %>% ggsave(.,filename = "figure_S4.png", device = "png", units = "px", width = 3200, height = 2500)
+
+
 
 # We assamble the 6 plots of figure a manually
 
