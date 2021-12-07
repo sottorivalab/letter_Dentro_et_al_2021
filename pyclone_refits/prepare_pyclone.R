@@ -39,38 +39,38 @@ format_to_pyclone <-  function(xx,purity){
 
 
 # Split the dataset in a list with SNVs values for each sample and add names
-snvs_list <- snvs %>% filter(Variant_Type == "SNP") %>%  group_split(Tumor_Sample_Barcode)
+#snvs_list <- snvs %>% filter(Variant_Type == "SNP") %>%  group_split(Tumor_Sample_Barcode)
 
-names <- sapply(snvs_list, function(x) x$Tumor_Sample_Barcode %>%  unique())
+#names <- sapply(snvs_list, function(x) x$Tumor_Sample_Barcode %>%  unique())
 
-names(snvs_list) <-  names
+#names(snvs_list) <-  names
 
 # We also need purity values for each sample
 # They can be donwloaded from https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170217.purity.ploidy.txt.gz
 
 #meta <- lapply(names, function(x) CDSLabData::load_dataset(type = "WGS", sample = x, cohort = "PCAWG")$metadata$purity )
 
-meta <-  meta %>% as.numeric()
+#meta <-  meta %>% as.numeric()
 
-names(meta) <-  meta
+#names(meta) <-  meta
 
 # Format data for pyclone-vi
 
-py_clone_VI <-  mapply(snvs_list, meta,FUN = function(x,y) format_to_pyclone(x, y), SIMPLIFY = F)
-names(py_clone_VI) <-  names(snvs_list)
+#py_clone_VI <-  mapply(snvs_list, meta,FUN = function(x,y) format_to_pyclone(x, y), SIMPLIFY = F)
+#names(py_clone_VI) <-  names(snvs_list)
 
 
 # Generate a structure with a directory for each sample
-mapply(py_clone_VI, names(py_clone_VI), FUN = function(x,y) {
+#mapply(py_clone_VI, names(py_clone_VI), FUN = function(x,y) {
 
-  dir.create(y, showWarnings = F)
-  write.table(x, file = paste0("./", y, "/pyclone_input.tsv"), sep = "\t", row.names = F, quote = F)
+#  dir.create(y, showWarnings = F)
+#  write.table(x, file = paste0("./", y, "/pyclone_input.tsv"), sep = "\t", row.names = F, quote = F)
 
-})
+#})
 
 # save the name of the samples that we used
-samples <-   names(py_clone_VI)
-save(names,file =  "samples.rda")
+#samples <-   names(py_clone_VI)
+#save(names,file =  "samples.rda")
 
 
 

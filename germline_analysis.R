@@ -317,6 +317,7 @@ Tarone_Boostrap <-
 # Meta can be downloaded from consensus.20170217.purity.ploidy.txt.gz
 # SNPs need to be extracted from closed access BAM files, they need to have the following columns: ["chr", "ref", "alt", "AD", "DP"].
 
+<<<<<<< HEAD
 # cnas <-  readRDS("letter_cnas.rds")
 # 
 # snvs <-  readRDS("letter_snvs.rds")
@@ -326,11 +327,12 @@ Tarone_Boostrap <-
 # meta <- readRDS("letter_metadata.rds")
 
 
-res <-  mapply(snps, snvs, cnas,names(cnas), meta, 
-                           FUN = function(x,y,z,n,m) 
-                             try(generate_report_overdispersion(x,y,z,n, m)),
-                           SIMPLIFY = F)
 
-res %>% saveRDS("germline_analysis.rds")
+#res <-  mapply(snps, snvs, cnas,names(cnas), meta, 
+#                           FUN = function(x,y,z,n,m) 
+#                             try(generate_report_overdispersion(x,y,z,n, m)),
+#                           SIMPLIFY = F)
+
+#res %>% saveRDS("germline_analysis.rds")
 
 
