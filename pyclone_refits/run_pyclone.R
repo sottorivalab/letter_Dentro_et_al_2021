@@ -3,7 +3,7 @@ run_pyclone <- function(x){
   # run the script in each directory and go back to the original wd
   setwd(x)
   if(!file.exists("pyclone_output.tsv"))
-    tryCatch( system("bash ../pyclone.sh ")
+    tryCatch( system("bash ../pyclone_refits/pyclone.sh ")
       ,finally = setwd("..")
     ) 
   else 
@@ -41,9 +41,9 @@ plot_pyclone <- function(x){
 }
 
 # load "names" variable with used sample names
-load("samples.rda")
+# load("samples.rda")
 
-easypar::run(lapply(names , list), FUN = run_pyclone, filter_errors = T, export = NULL,parallel = T,
-             cores.ratio = 0.6)
-easypar::run(lapply(names , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
-             cores.ratio = 0.6)
+# easypar::run(lapply(names , list), FUN = run_pyclone, filter_errors = T, export = NULL,parallel = T,
+#             cores.ratio = 0.6)
+#easypar::run(lapply(names , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
+#             cores.ratio = 0.6)
