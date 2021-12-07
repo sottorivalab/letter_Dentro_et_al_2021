@@ -70,6 +70,10 @@ position <- sample.int(1e8, size = N, replace = T) %>% sort()
 
 hist(NV/DP)
 
+inp <-  data.frame(DP, NV, VAF = NV /DP)
+
+save(inp,file = "input_data.rda")
+
 ```
 
 
