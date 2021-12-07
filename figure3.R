@@ -63,22 +63,25 @@ p3_1_df <- dplyr::inner_join(all_PCWAG %>% mutate(bind_id = paste(paste0("chr",C
 
 p3_1_df <-  p3_1_df %>%  filter(Variant_Type== "SNP")
 
-
+new_clusters <-  p3_1_df %>% group_by(name, cluster_id) %>% summarize(nmut = n() ) %>% arrange(-nmut) %>% ungroup() %>%
+  group_by(name) %>% 
+  mutate(new_cluster_ids = order(nmut, decreasing = T))
 ## Corresponding supplemetnary figure
 
-p3_supp <- ggplot(data = p3_1_df, aes(x = ccf.y %>% as.numeric, fill = cluster_id %>%  paste)) +
+p3_supp_df <- p3_1_df %>% inner_join(., new_clusters)
+p3_supp <- ggplot(data = p3_supp_df, aes(x = ccf.y %>% as.numeric, fill = new_cluster_ids %>%  paste)) +
   geom_histogram(bins = 100, position = "stack", alpha = 0.6) +
-  geom_text_repel(data = p3_1_df %>%  filter(is_driver != "NA",  clonality == "subclonal"),
+  geom_text_repel(data = p3_supp_df %>%  filter(is_driver != "NA",  clonality == "subclonal"),
                   aes(label = gene.y, y = Inf, x = ccf.y %>%  as.numeric), colour = "black",
-                  label.size = 0.01, alpha = 0.85) +
-  geom_vline(data = p3_1_df %>%  filter(is_driver != "NA", clonality == "subclonal"),
-             aes(xintercept = ccf.y %>% as.numeric, colour = cluster_id %>%  paste), lty = 2, show.legend = FALSE) +
+                  size = 2, alpha = 0.85) +
+  geom_vline(data = p3_supp_df %>%  filter(is_driver != "NA", clonality == "subclonal"),
+             aes(xintercept = ccf.y %>% as.numeric, colour = new_cluster_ids %>%  paste), lty = 2, show.legend = FALSE) +
   scale_fill_brewer("cluster",palette = "Dark2", aesthetics = c("colour", "fill")) +
   facet_wrap(.~name, scales = "free_y") + 
   theme_bw() + theme(legend.position = "None") +
   xlim(c(0,2)) +
   xlab("CCF") +
-  ylab("Counts") + ggtitle("PCAWG consensus clustering")
+  ylab("Counts") + ggtitle("Pyclone-vi clustering")
 
 
 p3_supp %>% ggsave(.,filename = "figure_S4.png", device = "png", units = "px", width = 3200, height = 2500)
