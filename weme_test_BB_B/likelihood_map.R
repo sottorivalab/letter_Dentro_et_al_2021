@@ -62,7 +62,7 @@ fit_Binomial_fixed_p = function(x,p1, p2, seed = 3)
   
 }
 
-overdispersion = 0.0015
+overdispersion = 0.015
 #overdispersion = rgamma(1, shape = shape, rate = rate)
 N = 5000
 coverage = rpois(1,lambda = 45) %>% round()
