@@ -1,6 +1,6 @@
 simulate_data = function(overdispersion = 0.01,
                          N = 1000,
-                         coverage = rpois(N, 45))
+                         coverage = rpois(N, 45), seed = 3)
 {
   data.frame(
     DP = coverage,
@@ -14,43 +14,109 @@ simulate_data = function(overdispersion = 0.01,
     mutate(VAF = NV / DP)
 }
 
-fit_Binomial = function(x)
+fit_Binomial = function(x, seed = 3)
 {
-  toString_Binomial_mix = BMix::bmixfit(
-    x %>% dplyr::select(NV, DP) %>% as.data.frame(), 
-    K.Binomials = 1:2, 
-    K.BetaBinomials = 0, 
-    score = "BIC"
-  ) %>% 
-    BMix::to_string() 
   
-  if(!is.null(toString_Binomial_mix$Pi_Bin_2))
-  tribble(
-    ~"cluster", ~"n_ssms", ~"proportion",
-    1,   toString_Binomial_mix$N_Bin_1, toString_Binomial_mix$Mean_Bin_1,
-    2,   toString_Binomial_mix$N_Bin_2, toString_Binomial_mix$Mean_Bin_2
-  )
+  library(matrixStats)
+  library(VGAM)
   
-else
-  tribble(
-    ~"cluster", ~"n_ssms", ~"proportion",
-    1,   toString_Binomial_mix$N_Bin_1, toString_Binomial_mix$Mean_Bin_1,
-  )
+  set.seed(seed)
+  
+  input <- x %>% dplyr::select(NV, DP) %>% as.data.frame()
+  
+  LL <- function(prob) {
+    R = dbinom(x = input$NV, prob = prob, size = input$DP)
+    
+    -sum(log(R))
+  }
+  
+  b1 <- stats4::mle(LL, start = list(prob = 0.5), lower = 0.001, upper = 0.999)
+  
+  p_b1 <-  b1@coef[1]
+  
+  phi1 = runif(1)
+  
+  phi = c(phi1, 1 - phi1)
+  
+  p = runif(2)
+  
+  E_tol = 1e-2
+  
+  S = x$NV
+  N = x$DP
+  
+  
+  lk1 = dbinom(S, p[1], size = N, log = T) + log(phi[1])  
+  lk2 = dbinom(S, p[2], size = N, log = T) + log(phi[2])
+  lk = apply(cbind(lk1, lk2), 1,  logSumExp, simplify = TRUE)
+  tol = Inf
+  
+  idx = 1
+  
+  while(tol > E_tol | idx < 3) {
+    
+
+    # E step
+    z = lk1 - lk
+    z = exp(z)
+    
+    #M step
+    
+    phi1 = sum(z) / length(N)  
+    phi = c(phi1, 1 - phi1)
+    
+    p1 = sum(S * z) / sum(N * z)
+    p2 = sum(S * (1 - z)) / sum(N * (1 - z))
+    
+    p = c(p1, p2)
+    
+    lk1 = dbinom(S, p[1], size = N, log = T) + log(phi[1])  
+    lk2 = dbinom(S, p[2], size = N, log = T) + log(phi[2]) 
+    
+    lk_old = lk
+    
+    lk = apply(cbind(lk1, lk2), 1,  logSumExp, simplify = TRUE)
+    
+    tol = abs(sum(lk_old) - sum(lk))
+    
+    idx = idx + 1
+  }
+  
+  BIC_b1 <- log(length(N)) + 2 * b1@min 
+  BIC_b2 <- 3 * log(length(N)) - 2 * sum(lk)
+  
+  if(BIC_b2 < BIC_b1){
+    tribble(
+      ~"cluster", ~"n_ssms", ~"proportion",
+      1,   round(length(N) * phi[1]) , p[1],
+      2,   round(length(N) * phi[2]), p[2]
+    )
+  } else {
+    tribble(
+      ~"cluster", ~"n_ssms", ~"proportion",
+      1,   length(N), p_b1,
+    )
+  }
+
 }
 
-fit_BetaBinomial = function(x)
+fit_BetaBinomial = function(x, seed = 3)
 {
-  toString_BetaBinomial_mix = BMix::bmixfit(
-    x %>% dplyr::select(NV, DP) %>% as.data.frame(), 
-    K.Binomials = 0, 
-    K.BetaBinomials = 1, 
-    score = "BIC"
-  ) %>% 
-    BMix::to_string() 
+  set.seed(seed)
+  library(VGAM)
+  input <- x %>% dplyr::select(NV, DP) %>% as.data.frame()
+  
+  LL <- function(prob, rho) {
+         R = dbetabinom(x = input$NV, prob = prob, rho = rho, size = input$DP)
+         
+           -sum(log(R))
+     }
+  
+  bb <-stats4::mle(LL, start = list(prob = 0.5, rho= 0.01))
   
   tribble(
     ~"cluster", ~"n_ssms", ~"proportion",
-    1,   toString_BetaBinomial_mix$N_BBin_1, toString_BetaBinomial_mix$Mean_BBin_1,
+    1,   length(input$NV) , bb@coef[1],
   ) 
 }
 
@@ -59,25 +125,27 @@ sampler = function(
   N = 1000,
   coverage = rpois(N, 45),
   n_binomial_methods = 7,
-  n_betabinomial_methods = 2
+  n_betabinomial_methods = 2,
+  seed = 3
 )
 {
+  set.seed(seed)
   rndm_folder = sample(LETTERS, 16) %>% paste(collapse = '')
   dir.create(rndm_folder)
   
   # Simulate data
-  dataset = simulate_data(overdispersion, N, coverage)
+  dataset = simulate_data(overdispersion, N, coverage, seed)
   
   # Fit Binomial
   binomial_methods = lapply(
     1:n_binomial_methods,
-    function(x) fit_Binomial(dataset)
+    function(x) fit_Binomial(dataset,x)
   )
   
   # Fit BetaBinomial
   betabinomial_methods = lapply(
     1:n_betabinomial_methods,
-    function(x) fit_BetaBinomial(dataset)
+    function(x) fit_BetaBinomial(dataset,x)
   )
   
   n_methods = n_betabinomial_methods + n_binomial_methods

@@ -30,7 +30,7 @@ plot_hist <- function(data) {
                aes(xintercept = ccf.y %>% as.numeric, colour = new_clusters %>%  paste), lty = 2, show.legend = FALSE) +
     scale_fill_brewer("cluster",palette = "Dark2", aesthetics = c("colour", "fill")) +
     facet_wrap(.~pipeline, scales = "free_y") + ggtitle(data_plot$name %>% unique()) +
-    theme_bw() + theme(legend.position = "None", plot.background  = element_rect(colour = "red4", fill=NA, size=2), plot.title = element_text(hjust = 0.5)) +
+    theme_bw() + theme(legend.position = "None", plot.title = element_text(hjust = 0.5),text = element_text(size=20) ) +
     xlim(c(0,2)) +
     xlab("CCF") +
     ylab("Counts") 
@@ -40,8 +40,8 @@ plot_hist <- function(data) {
 # As this data is closed access we cannot share it, we provide the columns you need from the original PCWAG data release 
 # to make this script work, you also need results from pyclone as obtained by our pipeline
 
-#all_pyclone <- readRDS("../overdispersion/letter_pyclone_BB_all.rds")
-#all_PCWAG <- data.table::fread("../overdispersion/maf_ccf_withdriver.csv", data.table = F)
+all_pyclone <- readRDS("../overdispersion/letter_pyclone_BB_all.rds")
+all_PCWAG <- data.table::fread("../overdispersion/maf_ccf_withdriver.csv", data.table = F)
 
 # This file is publicly downloadable at this link https://dcc.icgc.org/releases/PCAWG/evolution_and_heterogeneity
 annots <- data.table::fread("../overdispersion/icgc_sample_annotations_summary_table.txt", data.table=F) %>% rename(sample_id = tumour_aliquot_id) %>%
@@ -134,7 +134,7 @@ p3_2_df1$pipeline <-  "PCWAG"
 p3_2 <- ggplot(data =  rbind(p3_2_df2_aggr, p3_2_df1)%>% filter(clonality == "subclonal"),
                mapping = aes(x = pipeline , y = N)) +
   geom_col(colour = "black", size = 0.3, fill = "gainsboro", alpha = 0.8) +
-  theme_bw() + theme(legend.position = "None") +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
   xlab("") + ylab("#drivers") + 
   ggtitle("Subclonal SNV drivers in 1340 samples")
 
@@ -150,7 +150,7 @@ p3_3_df2$pipeline <-  "PCWAG"
 p3_3 <- ggplot(data =  rbind(p3_3_df1, p3_3_df2) %>% filter(clonality == "subclonal"),
                mapping = aes(x = pipeline , y = N )) +
   geom_col(colour = "black", size = 0.3, alpha = 0.8, fill = "gainsboro") +
-  theme_bw() + theme(legend.position = "None") +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
   xlab("") + ylab("#drivers") + 
   ggtitle("Subclonal SNV drivers in 41 samples with clonal split")
 
@@ -181,7 +181,7 @@ plot_df$N <- factor(plot_df$N, levels = c("0","1", "2", "3", ">3"))
 p3_4 <- ggplot(data =  plot_df, mapping = aes(x = N, fill = N %>%  paste())) +
   geom_bar(colour = "white") +
   scale_fill_brewer("Clonality", palette = "Blues") +
-  theme_bw() + theme(legend.position = "None") +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
   facet_wrap(.~pipeline) +
   xlab("") + ylab("#subclones") + 
   ggtitle("Number of subclones in 1340 samples")
@@ -204,7 +204,8 @@ df3_6 <- snvs_evo_bind_drivers %>%  filter(clonality == "subclonal") %>%
 
 p3_6 <- ggplot(df3_6 %>%  group_by(clonality, variable) %>%  summarize(N = sum(value)),
                aes(x = variable, y = N)) + 
-  theme_bw() + geom_point(color = "black", alpha = 0.85) + xlab("Probability threshold") + ylab("#drivers") + ggtitle("Number of drivers with different probability thresholds")
+  theme_bw() + geom_point(color = "black", alpha = 0.85) + xlab("Probability threshold") + 
+  ylab("#drivers") + ggtitle("Number of drivers with different probability thresholds") + theme(text = element_text(size=20))
 
 
 

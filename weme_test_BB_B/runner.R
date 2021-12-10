@@ -35,13 +35,13 @@ curve(dgamma(x, shape = shape, rate = rate),from = 0.005,to =  0.035, add = T, c
 table_runs = easypar::run(FUN = 
    function(i)
   {
+    set.seed(i)
     require(dplyr)
-    print(i)
 
     source("sampler.R")
 
-    # overdispersion = runif(1, 0.001, 0.01)
-    overdispersion = rgamma(1, shape = shape, rate = rate)
+    overdispersion = runif(1, 0.001, qgamma(0.85, shape = shape, rate = rate))
+    #overdispersion = rgamma(1, shape = shape, rate = rate)
     N = runif(1, 500, 5000) %>% round()
     coverage = rpois(1,lambda = 45) %>% round()
 
@@ -50,7 +50,8 @@ table_runs = easypar::run(FUN =
       N = N,
       coverage = rpois(N, coverage),
       n_binomial_methods = grid_samples$n_binomial_methods[i],
-      n_betabinomial_methods = grid_samples$n_betabinomial_methods[i]
+      n_betabinomial_methods = grid_samples$n_betabinomial_methods[i],
+      seed = i
     ) %>%
       mutate(
         overdispersion = overdispersion,
@@ -60,8 +61,9 @@ table_runs = easypar::run(FUN =
     smpl <- smpl %>% as_tibble() %>%  mutate(i = i)
     
     smpl
-  },PARAMS = lapply(1:nrow(grid_samples), list),parallel = T,
-  export = c("grid_samples", "shape", "rate"), filter_errors = FALSE, cores.ratio = 0.8)
+  },PARAMS = lapply(1:nrow(grid_samples), list),parallel = TRUE,cache = FALSE,
+  export = c("grid_samples", "shape", "rate"), filter_errors = TRUE, 
+  cores.ratio = 0.6)
 
 saveRDS(table_runs, 'Table_runs.rds')
 
