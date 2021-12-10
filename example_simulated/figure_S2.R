@@ -1,4 +1,5 @@
 library(tidyverse)
+library(patchwork)
 
 # load_input
 load("input_data.rda", verbose = T)
@@ -30,7 +31,7 @@ inp$pyclone_res <- pyclone_res$cluster_id + 1
 
 p3 <- ggplot(inp, aes(x = CCF, fill = pyclone_res %>% paste())) + geom_histogram(binwidth = 0.02) + 
   scale_fill_brewer("Cluster",palette = "Set2") +
-  theme_bw() + ggtitle("Pyclone (beta-Binomial)")
+  theme_bw() + ggtitle("Pyclone (Beta-Binomial)")
 
 consensus_structure <- readr::read_tsv("weme/example_simulated/example_subclonal_structure.txt")
 
@@ -41,6 +42,12 @@ lk_c2 <- dbinom(x = inp$NV, size = inp$DP ,prob = consensus_structure$proportion
 inp$consensus_cluster <- apply(cbind(lk_c1, lk_c2), MARGIN = 1, FUN = function(x) which.max(x))
 
 
-p4 <- ggplot(inp, aes(x = VAF, fill = consensus_cluster %>% paste())) + geom_histogram(binwidth = 0.02) + 
+p4 <- ggplot(inp, aes(x = CCF, fill = consensus_cluster %>% paste())) + geom_histogram(binwidth = 0.02) + 
   scale_fill_brewer("Cluster",palette = "Set2") +
   theme_bw() + ggtitle("Weme consensus clustering")
+
+
+p_S2 <-  (p1 | p2) / (p3 | p4) + patchwork::plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(face = 'bold')) 
+
+p_S2 %>% ggsave(., filename = "figure_S2.png", device = png, height = 2800, width = 2800, units = "px")
