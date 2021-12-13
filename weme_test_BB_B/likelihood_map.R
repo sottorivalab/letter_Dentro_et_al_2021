@@ -75,7 +75,7 @@ smpl <- simulate_data(
 )
 
 
-grid = expand.grid(p1 = seq(0.1,0.9,by = 0.1),p2 = seq(0.1,0.9,by = 0.1))
+grid = expand.grid(p1 = seq(0.1,0.9,by = 0.01),p2 = seq(0.1,0.9,by = 0.01))
 
 
 res = easypar::run(FUN = function(x) {
@@ -89,17 +89,24 @@ res = easypar::run(FUN = function(x) {
 
 lks <- res %>% do.call(cbind, .)
 
+
+
 grid$lk <-  lks[1,]
 grid$phi <- lks[2,]
 
+grid %>%  saveRDS("grid_ps.rds")
 
-p1 <- ggplot(grid, aes(p1, p2, fill= lk)) + 
-  geom_tile() + 
-  theme_minimal() + ggtitle("NLL for fixed values of prob")
+grid$phi <-  pmax(grid$phi , 1 - grid$phi)
+
+p1 <- ggplot(grid, aes(p1, p2, fill= lk / nrow(grid))) + 
+  geom_tile() + scale_fill_distiller("NLL/N", palette = "Spectral", direction = -1) +
+  theme_minimal() + ggtitle("NLL for fixed values of prob") + geom_contour( aes(z = ifelse(lk < 15000, lk, NA) ), size = 0.5,alpha = 0.45, bins = 10, color = "black", lty = "dashed")
 
 p2 <- ggplot(grid, aes(p1, p2, fill= phi)) + 
-  geom_tile() + 
-  theme_minimal() + ggtitle("Assignment probs to p1 for fixed values of prob")
+  geom_tile() + scale_fill_distiller("maxprob", palette = "Spectral", direction = -1) +
+  theme_minimal() + ggtitle("Max phi for fixed values of prob") 
 
-p1 | p2
+(p1 | p2) %>%  saveRDS(file = "supp2_ab.rds")
+
+(p1 | p2) %>%  ggsave(plot = .,filename = "supp2_ab.png", device = "png", scale = "px", width = 1600, height = 800) 
 

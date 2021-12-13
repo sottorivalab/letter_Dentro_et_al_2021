@@ -17,50 +17,42 @@ vaf_plot = ggplot(simulated_data %>% as_tibble) +
   xlim(0, 1)
 
 # Fit Binomial
-binomial_fit = BMix::bmixfit(
-  simulated_data %>% select(NV, DP) %>% as.data.frame(), 
-  K.Binomials = 1:2, 
-  K.BetaBinomials = 0, 
-  score = "BIC"
-)
+binomial_fit = fit_Binomial(simulated_data %>% select(NV, DP), return_pars = T)
 
-bin_fit_plot = binomial_fit %>% 
-  BMix::plot_clusters(simulated_data %>% select(NV, DP)) +
+bin_fit_plot = simulated_data %>% mutate(cluster = if_else(binomial_fit$Z >= 0.5, "B1" , "B2")) %>% 
+  ggplot(aes(VAF, fill = cluster)) +
+  geom_histogram(binwidth = 0.01)+
+  scale_fill_brewer(palette = "Set1") +
   labs(subtitle = NULL, 
        title = bquote("Beta-Binomial clusters (K"["B"]~'= 2)'))
 
-b_str = binomial_fit %>% BMix::to_string()
 
 dir.create("method1")
 
 tribble(
   ~"cluster", ~"n_ssms", ~"proportion",
-  1,   b_str$N_Bin_1, b_str$Mean_Bin_1,
-  2,   b_str$N_Bin_2, b_str$Mean_Bin_2
+  1,   round(binomial_fit$phi[1] * 5000), binomial_fit$p[1],
+  2,   round(binomial_fit$phi[2] * 5000), binomial_fit$p[2]
 ) %>% 
   write_tsv("method1/test_subclonal_structure.txt")
 
 # Fit BetaBinomial
-bbinomial_fit = BMix::bmixfit(
-  simulated_data %>% select(NV, DP) %>% as.data.frame(), 
-  K.Binomials = 0, 
-  K.BetaBinomials = 1, 
-  score = "BIC"
-)
+bbinomial_fit = fit_BetaBinomial(simulated_data %>% select(NV, DP), return_pars = TRUE)
 
-bbin_fit_plot = bbinomial_fit %>% 
-  BMix::plot_clusters(simulated_data %>% select(NV, DP)) +
+bbin_fit_plot = simulated_data %>% mutate(cluster = "BB1") %>% 
+  ggplot(aes(VAF, fill = cluster)) +
+  geom_histogram(binwidth = 0.01)+
+  scale_fill_brewer(palette = "Set1") +
   labs(subtitle = NULL, 
        title = bquote("Beta-Binomial clusters (K"["BB"]~'= 1)'))
 
-bb_str = bbinomial_fit %>% BMix::to_string()
 
 dir.create("method2")
 
 
 tribble(
   ~"cluster", ~"n_ssms", ~"proportion",
-  1,   bb_str$N_BBin_1, bb_str$Mean_BBin_1,
+  1,   5000, bbinomial_fit$p,
 ) %>% 
   write_tsv("method2/test_subclonal_structure.txt")
 

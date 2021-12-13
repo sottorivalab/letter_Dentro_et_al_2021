@@ -1,6 +1,7 @@
 set.seed(3)
 
 library(fitdistrplus)
+library(tidyverse)
 
 # Real values from the cohort SNPs in tumour BAMs
 dispersion_PCAWG = readr::read_tsv("../rho_selected_cases.tsv")
@@ -61,9 +62,7 @@ table_runs = easypar::run(FUN =
     smpl <- smpl %>% as_tibble() %>%  mutate(i = i)
     
     smpl
-  },PARAMS = lapply(1:nrow(grid_samples), list),parallel = TRUE,cache = FALSE,
-  export = c("grid_samples", "shape", "rate"), filter_errors = TRUE, 
-  cores.ratio = 0.6)
+  },PARAMS = lapply(1:nrow(grid_samples), list),parallel = FALSE, export = c("grid_samples", "shape", "rate"), filter_errors = FALSE, cores.ratio = 0.6)
 
 saveRDS(table_runs, 'Table_runs.rds')
 
