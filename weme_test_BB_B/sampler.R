@@ -14,7 +14,7 @@ simulate_data = function(overdispersion = 0.01,
     mutate(VAF = NV / DP)
 }
 
-fit_Binomial = function(x, seed = 3)
+fit_Binomial = function(x, seed = 3, return_pars = FALSE)
 {
   
   library(matrixStats)
@@ -85,6 +85,10 @@ fit_Binomial = function(x, seed = 3)
   BIC_b1 <- log(length(N)) + 2 * b1@min 
   BIC_b2 <- 3 * log(length(N)) - 2 * sum(lk)
   
+  if(return_pars) {
+    return(list(p = p, phi = phi, Z = z))
+  }
+  
   if(BIC_b2 < BIC_b1){
     tribble(
       ~"cluster", ~"n_ssms", ~"proportion",
@@ -100,23 +104,27 @@ fit_Binomial = function(x, seed = 3)
 
 }
 
-fit_BetaBinomial = function(x, seed = 3)
+fit_BetaBinomial = function(df, seed = 3, return_pars = FALSE)
 {
   set.seed(seed)
   library(VGAM)
-  input <- x %>% dplyr::select(NV, DP) %>% as.data.frame()
+  input <- df %>% dplyr::select(NV, DP) %>% as.data.frame()
   
-  LL <- function(prob, rho) {
-         R = dbetabinom(x = input$NV, prob = prob, rho = rho, size = input$DP)
+  LL <- function(a, b) {
+         R = dbetabinom.ab(x = input$NV, shape1 = a, shape2 = b, size = input$DP, log = T)
          
-           -sum(log(R))
+           -sum(R)
      }
   
-  bb <-stats4::mle(LL, start = list(prob = 0.5, rho= 0.01))
+  bb <- stats4::mle(LL, start = c( 50, 50), lower = c(0,0), upper = c(Inf, Inf))
+  
+  if(return_pars) {
+    return(list(p = bb@coef[1], rho = bb@coef[2]))
+  }
   
   tribble(
     ~"cluster", ~"n_ssms", ~"proportion",
-    1,   length(input$NV) , bb@coef[1],
+    1,   length(input$NV) , bb@coef[1]  / sum(bb@coef[1] + bb@coef[2]) ,
   ) 
 }
 
@@ -139,13 +147,13 @@ sampler = function(
   # Fit Binomial
   binomial_methods = lapply(
     1:n_binomial_methods,
-    function(x) fit_Binomial(dataset,x)
+    function(x) fit_Binomial(dataset,seed = x)
   )
   
   # Fit BetaBinomial
   betabinomial_methods = lapply(
     1:n_betabinomial_methods,
-    function(x) fit_BetaBinomial(dataset,x)
+    function(x) fit_BetaBinomial(dataset,seed = x)
   )
   
   n_methods = n_betabinomial_methods + n_binomial_methods

@@ -43,6 +43,9 @@ require(dplyr)
 require(ggplot2)
 require(BMix)
 require(cowplot)
+
+## scripts for EM and MLE inference
+
 ```
 
 We set parameters for a tumour WGS calls set with:
@@ -55,7 +58,7 @@ We set parameters for a tumour WGS calls set with:
 
 ```{r, eval=TRUE}
 # Overdispersion for a Beta-Binomial model, fixed parameter.
-overdispersion = 0.01
+overdispersion = 0.015
 
 # Number of considered mutations
 N = 1000
@@ -102,14 +105,8 @@ ggplot(simulated_data) + geom_histogram(aes(VAF), binwidth = 0.01)
 We know perform Binomial clustering with 2 mixture components (fixed parameters), to replicate the split expected to be caused by overdispersion.
 ```{r eval=TRUE}
 # Fit by BMix
-Binomial_mix = BMix::bmixfit(
-  simulated_data %>% select(NV, DP) %>% as.data.frame(), 
-  K.Binomials = 2,     # Binomials
-  K.BetaBinomials = 0, # Beta-Binomials
-  score = "BIC"
-  )
 
-Binomial_mix %>% print
+
 ```
 
 This are the clustering assignments and fit density for the read counts with the variant.
