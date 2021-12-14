@@ -1,13 +1,13 @@
 simulate_data = function(overdispersion = 0.01,
                          N = 1000,
-                         coverage = rpois(N, 45), seed = 3)
+                         coverage = rpois(N, 45), seed = 3, purity = 1)
 {
   data.frame(
     DP = coverage,
     NV = VGAM::rbetabinom(
       n = N,
       size = coverage,
-      prob = 0.5,
+      prob = 0.5 * purity,
       rho = overdispersion
     )
   ) %>%

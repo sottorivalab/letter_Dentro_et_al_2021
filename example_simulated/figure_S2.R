@@ -44,10 +44,23 @@ inp$consensus_cluster <- apply(cbind(lk_c1, lk_c2), MARGIN = 1, FUN = function(x
 
 p4 <- ggplot(inp, aes(x = CCF, fill = consensus_cluster %>% paste())) + geom_histogram(binwidth = 0.02) + 
   scale_fill_brewer("Cluster",palette = "Set2") +
+  theme_bw() + ggtitle("Weme consensus clustering with PCAWG tools")
+
+
+
+p_top <-  readRDS("../weme_test_BB_B/supp2_ab.rds")
+
+p_middle <- readRDS("p_sim.rds")
+
+df_b <- inp %>% select(CCF, ccube_clusters, dpclust_clusters, pyclone_res, consensus_cluster) %>%  
+  rename(weme = consensus_cluster, pyclone = pyclone_res, ccube = ccube_clusters, dpclust = dpclust_clusters) %>% 
+  reshape2::melt(id.vars = "CCF")
+
+p_bottom <- ggplot(df_b, aes(x = CCF, fill = value %>% paste())) + geom_histogram(binwidth = 0.02) + 
+  scale_fill_brewer("Cluster",palette = "Set2") + facet_wrap(.~variable, nrow = 1) + 
   theme_bw() + ggtitle("Weme consensus clustering")
 
-
-p_S2 <-  (p1 | p2) / (p3 | p4) + patchwork::plot_annotation(tag_levels = "a") &
+p_S2 <- p_top / p_middle / p_bottom + patchwork::plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(face = 'bold')) 
 
-p_S2 %>% ggsave(., filename = "figure_S2.png", device = png, height = 2800, width = 2800, units = "px")
+p_S2 %>% ggsave(., filename = "figure_S2.png", device = png, height = 2800, width = 2500, units = "px")

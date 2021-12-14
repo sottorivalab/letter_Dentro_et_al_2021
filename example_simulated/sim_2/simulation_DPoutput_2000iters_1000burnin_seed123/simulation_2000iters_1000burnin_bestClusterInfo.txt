@@ -1,0 +1,3 @@
+cluster.no	location	no.of.mutations
+1	1.03091976516634	4488
+2	0.732681017612524	463

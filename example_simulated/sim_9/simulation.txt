@@ -1,0 +1,2 @@
+sample	subsample	datafile	cellularity
+simulation	01	./simulation_input.txt	0.65
