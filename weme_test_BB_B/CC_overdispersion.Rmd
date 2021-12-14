@@ -41,7 +41,6 @@ set.seed(1234)
 # Used packages
 require(dplyr)
 require(ggplot2)
-require(BMix)
 require(cowplot)
 
 ## scripts for EM and MLE inference
@@ -104,7 +103,7 @@ ggplot(simulated_data) + geom_histogram(aes(VAF), binwidth = 0.01)
 
 We know perform Binomial clustering with 2 mixture components (fixed parameters), to replicate the split expected to be caused by overdispersion.
 ```{r eval=TRUE}
-# Fit by BMix
+# Fit mixture
 
 
 ```
