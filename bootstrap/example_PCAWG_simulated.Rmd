@@ -1,0 +1,244 @@
+---
+title: "Example_with_PCWAG_tools"
+author: "Salvatore Milite"
+output:   
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
+---
+
+
+In this notebook we want to provide an example of consensus clustering similar to that adopted in PCWAG. We generated a simulated dataset from a negative binomial with coverage 50 and overdispersion of 0.015, two values that well represent the data used in Dentro et al.
+
+In this case we simulated only the clonal cluster of a tumor with 65% purity and we ran 2 tools with binomial likelihood and one with beta-binomial likelihood. The tools were chosen to have a similar ratio to that found in the original pipeline (2 vs 7). We did not implement exactly the original pipeline because of the difficulty to reproduce some model selection procedures (as with CliP) or the lack of some specific inputs used to build the files used for clustering (Sclust). In particular we chose:
+
+* Pyclone-vi (beta-binomial)
+* Ccube (normal-binomial)
+* Dpclust (binomial)
+
+In that they are effectively documented, and easily usable with simulated data.
+To avoid versioning issues the packages used were included in the code bundle.
+
+
+```{r, results = FALSE}
+set.seed(1234)
+
+# Used packages
+require(dplyr)
+require(ggplot2)
+require(cowplot)
+require(VGAM)
+require(ccube)
+require(mclust)
+require(fpc)
+require(matrixStats)
+require(readr)
+
+```
+
+
+```{r}
+
+MEAN_COV <- 45
+RHO <- 0.015
+N <- 5000
+purity  <-  0.65
+
+# Poisson distributed coverage
+DP <-  rpois(N, MEAN_COV)
+
+
+hist(DP)
+```
+
+```{r}
+
+NV <- rbetabinom(N, size = DP, prob = 0.5 * purity, rho = RHO)
+
+hist(NV)
+
+```
+```{r}
+
+chr <- rep(1, N)
+
+position <- sample.int(1e8, size = N, replace = T) %>% sort()
+
+
+hist(NV/DP)
+
+inp <-  data.frame(chr, position, DP, NV, VAF = NV /DP)
+
+save(inp,file = "input_data.rda")
+
+```
+
+
+
+```{r, eval = FALSE}
+
+### CCUBE : Normal-Binomial
+
+
+# We run ccube as in the vignette
+numOfClusterPool = 1:6
+numOfRepeat = 5
+
+
+ccube_inp <- data.frame(major_cn = 1, minor_cn = 1, total_cn = 2, 
+                        purity = purity, normal_cn = 1,
+                        mutation_id = paste(chr, position, sep = "_"),
+                        var_counts = NV,
+                        ref_counts = DP - NV,
+                        total_counts = DP) %>% as_tibble()
+
+
+results_ccube <- RunCcubePipeline(ssm = ccube_inp, 
+                            numOfClusterPool = numOfClusterPool, 
+                            numOfRepeat = numOfRepeat,
+                            runAnalysis = T, 
+                            runQC = T)
+
+
+save(results_ccube, file = "results_ccube.rda")
+
+```
+
+```{r}
+load("results_ccube.rda")
+MakeCcubeStdPlot(ssm = results_ccube$ssm, res = results_ccube$res)
+
+
+```
+
+```{r}
+### Dpclust : Binomial
+
+dir.create("dpclust_input")
+
+ data.frame(chr = chr, end = position,
+            Reference_Allele = "A", Tumor_Seq_Allele2 = "T",
+                          mut.count	 = NV, WT.count = DP - NV,
+            subclonal.CN	 = 2, mutation.copy.number	 = 1,
+            subclonal.fraction	 = 1, no.chrs.bearing.mut	=1) %>% 
+  readr::write_tsv(., "dpclust_input/sample0_input.txt")
+ 
+ data.frame(sample = "sample0", subsample = "01",
+            datafile = "./sample0_input.txt", cellularity = purity
+                         ) %>%
+  readr::write_tsv(., "dpclust_input/sample0.txt")
+
+
+```
+
+```{bash, eval = FALSE}
+## For dpclust we use the pipeline that can be found in the package, it is also available as a docker image
+
+mkdir -p output_dpclust
+cd dpclust/inst/example
+
+R --vanilla --slave -q -f dpclust_pipeline.R --args -r 1 -d ../../../dpclust_input/ -o ../../../output_dpclust -i ../../../dpclust_input/sample0.txt
+
+
+```
+
+
+```{r}
+cluster_composition_dpclust <-  readr::read_tsv("output_dpclust/sample0_DPoutput_2000iters_1000burnin_seed123/sample0_2000iters_1000burnin_bestClusterInfo.txt", col_types = cols())
+
+print(cluster_composition_dpclust)
+```
+```{r}
+### Pyclone-vi : BetaBinomial
+
+dir.create("pyclone_input", showWarnings = F)
+
+ data.frame(mutation_id = paste0("S_",1:length(DP)), sample_id = "example",
+                          alt_counts	 = NV, ref_counts = DP - NV,
+            normal_cn	 = 2, major_cn	 = 1,
+            minor_cn	= 1, tumour_content = purity) %>% 
+  readr::write_tsv(., "pyclone_input/sample0_input.tsv")
+ 
+```
+
+```{bash,eval = FALSE}
+
+source ~/miniforge3/etc/profile.d/conda.sh
+
+conda activate pyclone-vi
+
+mkdir output_pyclone
+
+pyclone-vi fit -i pyclone_input/sample0_input.tsv -o output_pyclone/example.h5 -c 40 -d beta-binomial -r 10
+
+pyclone-vi write-results-file -i output_pyclone/example.h5 -o output_pyclone/example.tsv
+
+
+```
+```{r, eval = FALSE}
+# We then ave to prepare the input for weme
+
+dir.create("weme/example_simulated", showWarnings = F)
+
+
+dir.create("weme/example_simulated/method1", showWarnings = F)
+
+load("results_ccube.rda", verbose = T)
+
+results_ccube$ssm$cluster_id <- results_ccube$res$label
+
+ccube_sc = results_ccube$ssm %>% group_by(cluster_id) %>% summarise(n_ssms = n(), proportion = ccube_ccf_mean %>%  unique()) %>%  rename(cluster = cluster_id) %>%  select(cluster, n_ssms, proportion) %>%  mutate(proportion = proportion * purity)
+
+readr::write_tsv("weme/example_simulated/method1/example_subclonal_structure.txt", x = ccube_sc %>%  filter(n_ssms > 50) %>%  arrange(-proportion)%>% mutate(cluster = 1:length(cluster)))
+
+dir.create("weme/example_simulated/method2", showWarnings = F)
+
+
+## dpclust apparently returns the location in terms of total tumour cells so we multiply it by purity
+dpclust_sc <-  cluster_composition_dpclust %>%  rename(cluster = cluster.no, proportion = location, n_ssms = no.of.mutations) %>%  
+  mutate(proportion= proportion * purity) %>% select(cluster, n_ssms, proportion)
+
+readr::write_tsv("weme/example_simulated/method2/example_subclonal_structure.txt", x = dpclust_sc %>%  filter(n_ssms > 50) %>%  arrange(-proportion)%>% mutate(cluster = 1:length(cluster)))
+
+
+dir.create("weme/example_simulated/method3", showWarnings = F)
+
+pyclone_out <- readr::read_tsv("output_pyclone/example.tsv", col_types = cols()) %>% group_by(cluster_id, cellular_prevalence) %>%  summarize(n_ssms = n())
+
+pyclone_sc <-  pyclone_out %>%  rename(cluster = cluster_id, proportion = cellular_prevalence) %>%  select(cluster, n_ssms, proportion) %>% 
+  mutate(proportion = proportion * purity)
+
+readr::write_tsv("weme/example_simulated/method3/example_subclonal_structure.txt", x = pyclone_sc %>%  filter(n_ssms > 50) %>%  arrange(-proportion) %>% mutate(cluster = 1:length(cluster)))
+
+
+```
+
+From the results extracted from weme we see that although pyclone-vi correctly clusters the data into a single cluster (excluding an extremely small cluster on the left tail that is filtered out), the push by other algorithms to fragment the clonal cluster into two results in consensus clustering that is wrong with respect to the starting generative model.
+
+```{r}
+
+setwd("weme/example_simulated/")
+source("../weme.R")
+
+sids = find_sids()
+
+
+genconsensus(sids,rounddown=FALSE)
+
+print("pyclone-vi")
+read.table(file = "./method3/example_subclonal_structure.txt", header = T)
+print("ccube")
+read.table(file = "./method1/example_subclonal_structure.txt", header = T)
+print("dpclust")
+read.table(file = "./method2/example_subclonal_structure.txt", header = T)
+
+
+
+print("consensus")
+read.table(file = "./example_subclonal_structure.txt", header = T)
+
+```
+

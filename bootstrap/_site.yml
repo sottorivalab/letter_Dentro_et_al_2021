@@ -9,3 +9,5 @@ navbar:
       href: data.html
     - text: "PCAWG fits"
       href: fits.html
+    - text: "Simulations of PCAWG methods"
+      href: example_PCAWG_simulated.html
