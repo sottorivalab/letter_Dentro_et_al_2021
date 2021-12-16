@@ -10,6 +10,11 @@ output:
     highlight: tango
 ---
 
+```{r}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+
 
 In this notebook we want to provide an example of consensus clustering similar to that adopted in PCWAG. We generated a simulated dataset from a negative binomial with coverage 50 and overdispersion of 0.015, two values that well represent the data used in Dentro et al.
 

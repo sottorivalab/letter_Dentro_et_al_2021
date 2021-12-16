@@ -1,5 +1,13 @@
 ---
 title: "Matters arising Dentro et al."
+
+output:   
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
 ---
 
 This is the website to release all the source code attached to the paper
