@@ -1,5 +1,13 @@
 ---
 title: "PCAWG data"
+
+output:   
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
 ---
 
 Marc/Salvatore
