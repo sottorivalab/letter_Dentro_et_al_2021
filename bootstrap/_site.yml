@@ -1,0 +1,11 @@
+name: "personal-website"
+output_dir: "."
+navbar:
+  title: "Letter"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "PCAWG data"
+      href: data.html
+    - text: "PCAWG fits"
+      href: fits.html
