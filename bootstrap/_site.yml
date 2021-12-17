@@ -9,7 +9,9 @@ navbar:
       href: data.html
     - text: "PCAWG fits"
       href: fits.html
+    - text: "Germline overdispersion analysis"
+      href: germline_analysis.html
     - text: "Clustering simulations"
-      href: clustering_simulations.html
+      href: CC_overdispersion.html
     - text: "Simulations of PCAWG methods"
-      href: example_PCAWG_simulated.html
+      href: example_simulated_PCAWG.html
