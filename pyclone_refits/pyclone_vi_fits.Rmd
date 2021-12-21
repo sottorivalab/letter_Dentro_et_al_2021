@@ -53,7 +53,27 @@ format_to_pyclone <-  function(xx,purity){
 ```
 
 Here we assume you have the data as described in the `PCAWG data` vignette, the input here is a list of data.frame for each sample in the object `snvs_list`. For the metadata and the pyclone-vi installation the code is presented in the `Germline overdispersion analysis` vignette.
-```{r}
+
+```{r, eval = FALSE}
+library(tidyverse
+        )
+
+# this file is produced at the end of the first vignete
+maf_ccf <-  readr::read_csv("maf_subclone_ccf.csv.gz")
+
+# you can download this file by running a chunk in Germline overdispersion analysis vignette
+meta <-  readr::read_tsv("../germline_overdispersion_analysis/consensus.20170217.purity.ploidy.txt.gz") %>% split(., .$samplename)
+
+snvs_list <- maf_ccf %>% split(., .$Tumor_Sample_Barcode)
+
+meta <-  meta[names(snvs_list)]
+
+names <- names(snvs_list)
+
+```
+
+
+```{r, eval = FALSE}
 
 
 meta <- lapply(meta, function(x) x$purity)
@@ -76,7 +96,7 @@ run_pyclone <- function(x){
   # run the script in each directory and go back to the original wd
   setwd(x)
   if(!file.exists("pyclone_output.tsv"))
-    tryCatch( system("bash ../pyclone_refits/pyclone.sh ")
+    tryCatch( system("bash ../pyclone.sh ")
       ,finally = setwd("..")
     ) 
   else 
@@ -116,10 +136,26 @@ plot_pyclone <- function(x){
 
 Here we use the package ![easypar](https://github.com/caravagn/easypar) to implement parallel execution.
 
+```{r, results='hide', message=FALSE, eval = FALSE}
+easypar::run(lapply(names[1:2] , list), FUN = run_pyclone, filter_errors = F, export = NULL,parallel = T,
+             cores.ratio = 0.6)
+easypar::run(lapply(names[1:2] , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
+             cores.ratio = 0.6)
+```
+We then assemble the results in a data.frame
+
 ```{r}
-easypar::run(lapply(names , list), FUN = run_pyclone, filter_errors = F, export = NULL,parallel = T,
-             cores.ratio = 0.6)
-easypar::run(lapply(names , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
-             cores.ratio = 0.6)
+read_pyclone_BB_res <- function(x) 
+{
+  readr::read_tsv(file.path(x, "pyclone_output.tsv"))
+}
+```
+
+
+```{r, eval=FALSE}
+all_pyclone_BB <-  easypar::run(lapply(names[1:2], list),FUN =  read_pyclone_BB_res, export = NULL, filter_errors = F )
+
+saveRDS(all_pyclone_BB, file = "./pyclone_BB_all.rds")
+
 ```
 

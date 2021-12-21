@@ -88,7 +88,7 @@ p3_supp %>% ggsave(.,filename = "figure_S4.png", device = "png", units = "px", w
 
 
 
-# We assamble the 6 plots of figure a manually
+# We assemble the 6 plots of figure a manually
 
 samples_to_plot <- c("Panc-AdenoCA\nSA410399", "Panc-AdenoCA\nSA410978", "Panc-AdenoCA\nSA520252", "Panc-AdenoCA\nSA520283",
                      "Biliary-AdenoCA\nSA543550", "Liver-HCC\nSA501649")
@@ -111,7 +111,7 @@ p3_1 <- (p_3_1_1 | p_3_1_2 |p_3_1_3 ) / (p_3_1_4 | p_3_1_5 | p_3_1_6)
 
 #p5_1 %>%  ggsave(filename = "p5_1.pdf", device = "pdf")
 
-p3_2_df1 <-  all_PCWAG %>% filter(isdriver == T,mut_type == "SNV" ) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
+p3_2_df1 <-  all_PCWAG %>% filter(isdriver == T) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
 
 p3_2_df2 <- all_pyclone %>%  do.call(rbind,.) %>% separate(col = mutation_id,
                                                            into = c("chr", "from", "to", "ccf", "gene", "is_driver"),  sep = ":")
