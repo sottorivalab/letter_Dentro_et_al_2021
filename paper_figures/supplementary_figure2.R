@@ -31,3 +31,6 @@ p4_1_2 <- ggplot(plot_inp %>%  filter(clonality == "subclonal"),  aes(fill = val
 p4 <- p4_1_1 / p4_1_2  + plot_annotation(tag_levels = 'a')
 
 p4  %>%  ggsave(filename = "figure_S2.png", device = "png", plot = ., width = 12, height = 6.9)
+
+
+

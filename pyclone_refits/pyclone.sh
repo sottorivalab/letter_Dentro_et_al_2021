@@ -4,7 +4,7 @@
 # installed
 
 # you should source your conda init script here
-#source ~/miniforge3/etc/profile.d/conda.sh
+source ~/miniforge3/etc/profile.d/conda.sh
 
 conda activate pyclone-vi
 

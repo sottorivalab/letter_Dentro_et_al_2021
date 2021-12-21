@@ -20,8 +20,8 @@ the germline analysis the function `generate_report_overdispersion` provides a c
 
 * *snps*: germinal SNPs, they can be obtained from the normal and tumour BAMS (restricted access), the input table should have the 5 following field "chr", "ref", "alt", "AD", "DP". Where "ref" is the reference allele, “alt“ the alternative and "DP" and "AD" can be obtained from the VCF. Here we provide one example file to run the vignette. 
 *  *cna*: PCWAG consensus CN files, can be downloaded from https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170119.somatic.cna.annotated.tar.gz
-*  *meta*: a table with at least a coloumn named `purity` with the actual purity values for the sample. Can be downloaded from https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170119.somatic.cna.annotated.tar.gz
-*  *snvs*: can be obtained as described in the XXX article
+*  *meta*: a table with at least a coloumn named `purity` with the actual purity values for the sample. Can be downloaded from https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170217.purity.ploidy.txt.gz
+*  *snvs*: maf_subclone_ccf.csv can be obtained as described in the `Process PCAWG data` article
 *  *name*: the sample name (just used to generate plot labels)
 
 If you don't already have the *cna* and *meta* files, you can automatically donwload them by running this chunk
@@ -29,19 +29,31 @@ If you don't already have the *cna* and *meta* files, you can automatically donw
 options(timeout=100)
 
 download.file("https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170119.somatic.cna.annotated.tar.gz", destfile = "cnvs.tar.gz")
-download.file("https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170119.somatic.cna.annotated.tar.gz", destfile = "meta.tar.gz")
+download.file("https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170217.purity.ploidy.txt.gz", destfile = "meta.tar.gz")
 
 ```
+
+```{r}
+require(tidyverse)
+
+
+meta <-  readr::read_tsv("consensus.20170217.purity.ploidy.txt.gz") %>% split(., .$samplename)
+untar("consensus.20170119.somatic.cna.annotated.tar.gz", exdir = "cnas")
+cnas <-  lapply(list.files(path = "cnas", full.names = T), function(x) readr::read_tsv(x, show_col_types = FALSE))
+
+cna_nms <- list.files(path = "cnas") %>%  substr(1,36)
+names(cnas) <-  cna_nms
+```
+
 
 Once you have all the data you can simply run this chunk of code to produce the report as in the `germline_supp_figure.pdf`.
 In this vignette we will also run all of the plots separately on a released anonymized version of the SNPs data for a single sample to explain how they are made.
 
-```{R}
+```{r, eval = FALSE}
 
-require(tidyverse)
 require(ggrepel)
 
-source(germline_analysis.R)
+source("germline_analysis.R")
 
 res <- generate_report_overdispersion(snps, snvs, cna, name, meta)
 
@@ -322,10 +334,17 @@ vaf_plot
 
 
 ```{r}
+
+cna <-  cnas$`50e3a421-9741-4cd8-911b-0f47ca518b6a`
+
+```
+
+
+```{r}
 tarone_plot <- Tarone_Boostrap(bmix_data_s %>% mutate(NV = DV, VAF = NV / DP))
 
-cna_p <-  cna %>% filter(!is.na(Major)) %>% mutate(karyotype = paste0(Major, ":", minor), length = to - from) %>%
-  mutate(is_diploid = ifelse(karyotype == "1:1", "diploid", "aneuploid"), length = to - from ) %>%
+cna_p <-  cna %>% filter(!is.na(major_cn)) %>% mutate(karyotype = paste0(major_cn, ":", minor_cn), length = end - start) %>%
+  mutate(is_diploid = ifelse(karyotype == "1:1", "diploid", "aneuploid"), length = end - start ) %>%
   dplyr::select(length, is_diploid) %>% group_by(is_diploid) %>%  summarize(t_length = sum(length)) %>%
   mutate(t_length =(t_length / sum(t_length)) %>% round(2))
 
@@ -351,5 +370,7 @@ cna_plot <-  ggplot(cna_p, aes(x="", y=t_length, fill=is_diploid) ) +
   geom_text(aes(y = position,
                 label = scales::percent(t_length)), size=4) + ggtitle("Percentage of diploid genome") +
   scale_fill_manual(values = c("orange", "gainsboro"))
+
+cna_plot
 ```
 

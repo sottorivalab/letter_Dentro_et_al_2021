@@ -10,8 +10,13 @@ navbar:
     - text: "PCAWG fits"
       href: fits.html
     - text: "Germline overdispersion analysis"
-      href: germline_analysis.html
+      href: germline_overdispersion_analysis.html
     - text: "Clustering simulations"
       href: CC_overdispersion.html
     - text: "Simulations of PCAWG methods"
       href: example_simulated_PCAWG.html
+    - text: "Pyclone reclustering"
+      href: pyclone_vi_fits.html
+    - text: "Compiling figure 3 and supplementary S2"
+      href: .html
+      
