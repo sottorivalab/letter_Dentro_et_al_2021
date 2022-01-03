@@ -4,6 +4,11 @@ author: "Salvatore Milite"
 date: "12/21/2021"
 output: html_document
 ---
+```{r, echo=FALSE}
+knitr::opts_chunk$set("eval" = FALSE)
+```
+
+
 
 ## Figure 3 ans S4
 
@@ -40,7 +45,7 @@ plot_hist <- function(data) {
                aes(xintercept = ccf.y %>% as.numeric, colour = new_clusters %>%  paste), lty = 2, show.legend = FALSE) +
     scale_fill_brewer("cluster",palette = "Dark2", aesthetics = c("colour", "fill")) +
     facet_wrap(.~pipeline, scales = "free_y") + ggtitle(data_plot$name %>% unique()) +
-    theme_bw() + theme(legend.position = "None", plot.title = element_text(hjust = 0.5),text = element_text(size=20) ) +
+    theme_bw() + theme(legend.position = "None", plot.title = element_text(hjust = 0.5),text = element_text(size=12) ) +
     xlim(c(0,2)) +
     xlab("CCF") +
     ylab("Counts") 
@@ -70,10 +75,15 @@ load("../samples_letter.rda", verbose = T)
 ```{r}
 all_pyclone_letter <- all_pyclone %>%  do.call(rbind,.) %>% filter(sample_id %in% nms_letter)
 
-p3_1_df <- all_pyclone_letter %>%  dplyr::inner_join(annots, .)
+p3_1_df <- all_pyclone_letter %>% separate(col = mutation_id,
+                                           into = c("chr", "from", "to", "ccf", "gene", "is_driver"),
+                                           sep = ":")
 
-p3_1_df <- dplyr::inner_join(all_PCWAG %>% mutate(mutation_id = paste(paste0("chr",Chromosome), Start_position, Start_position, round(ccf,3), gene, is_driver, sep = ":")),
-                             p3_1_df , by ="mutation_id")
+p3_1_df <- p3_1_df %>%  dplyr::inner_join(annots, .)
+
+p3_1_df <- dplyr::inner_join(all_PCWAG %>% mutate(bind_id = paste(paste0("chr",Chromosome), Start_position, Start_position, round(ccf,3), sep = ":")),
+                             p3_1_df %>%  mutate(bind_id = paste(chr, from, to, ccf, sep = ":")), by ="bind_id")
+
 
 # Also interesting to look just at SNVs that usually have a higher mapping quality
 #p3_1_df <-  p3_1_df %>%  filter(Variant_Type== "SNP")
@@ -110,7 +120,7 @@ p3_supp %>% ggsave(.,filename = "figure_S4.png", device = "png", units = "px", w
 
 ```
 
-For figure 6 we first generate panels a-g
+For figure 3 we first generate panels a-f
 
 ```{r}
 # We assemble the 6 plots of figure a manually
@@ -136,16 +146,17 @@ p3_1 <- (p_3_1_1 | p_3_1_2 |p_3_1_3 ) / (p_3_1_4 | p_3_1_5 | p_3_1_6)
 
 ```
 
-Then we plot panels 
+Then we plot panels h,i
 
 ```{r}
 
 p3_2_df1 <-  all_PCWAG %>% filter(isdriver == T) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
 
-p3_2_df2 <- all_pyclone %>%  do.call(rbind,.) 
+p3_2_df2 <- all_pyclone %>%  do.call(rbind,.) %>% separate(col = mutation_id,
+                                                           into = c("chr", "from", "to", "ccf", "gene", "is_driver"),  sep = ":")
 
-p3_2_df2 <- dplyr::inner_join(all_PCWAG %>% select(-clonality, - gene )%>%  mutate(bind_id = paste(paste0("chr",Chromosome), Start_position, Start_position, round(ccf,3),gene, is_driver, sep = ":")),
-                              p3_2_df2), by ="mutation_id")
+p3_2_df2 <- dplyr::inner_join(all_PCWAG %>% select(-clonality, - gene )%>%  mutate(bind_id = paste(paste0("chr",Chromosome), Start_position, Start_position, round(ccf,3), sep = ":")),
+                              p3_2_df2 %>%  mutate(bind_id = paste(chr, from, to, ccf, sep = ":")), by ="bind_id")
 
 # Here we somehow copy the assignment criteria of the Dentro paper, a pyclone cluster is clonal if it is the max(cellular prevalence) cluster
 # or it has ccf > 90%  
@@ -162,12 +173,12 @@ p3_2_df1$pipeline <-  "PCWAG"
 p3_2 <- ggplot(data =  rbind(p3_2_df2_aggr, p3_2_df1)%>% filter(clonality == "subclonal"),
                mapping = aes(x = pipeline , y = N)) +
   geom_col(colour = "black", size = 0.3, fill = "gainsboro", alpha = 0.8) +
-  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=12)) +
   xlab("") + ylab("#drivers") + 
-  ggtitle("Subclonal drivers (SNVs/indels) in 1340 samples")
+  ggtitle("Subclonal drivers (SNVs/indels)\n in 1340 samples")
 
-p3_3_df1 <- p3_2_df2 %>%  filter(sample_id %in% nms_letter, is_driver != "NA", mut_type == "SNV" ) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
-p3_3_df2 <- all_PCWAG %>% filter(isdriver == T,mut_type == "SNV" ) %>%  filter(Tumor_Sample_Barcode %in% nms_letter) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
+p3_3_df1 <- p3_2_df2 %>%  filter(sample_id %in% nms_letter, is_driver != "NA") %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
+p3_3_df2 <- all_PCWAG %>% filter(isdriver == T ) %>%  filter(Tumor_Sample_Barcode %in% nms_letter) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
 
 p3_3_df1$pipeline <- "PyClone"
 p3_3_df2$pipeline <-  "PCWAG"
@@ -175,11 +186,13 @@ p3_3_df2$pipeline <-  "PCWAG"
 p3_3 <- ggplot(data =  rbind(p3_3_df1, p3_3_df2) %>% filter(clonality == "subclonal"),
                mapping = aes(x = pipeline , y = N )) +
   geom_col(colour = "black", size = 0.3, alpha = 0.8, fill = "gainsboro") +
-  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=12)) +
   xlab("") + ylab("#drivers") + 
-  ggtitle("Subclonal drivers (SNVs/indels) in 41 selected samples")
+  ggtitle("Subclonal drivers (SNVs/indels)\n in 41 samples")
 
 ```
+
+Then panel k
 
 ```{r}
 p3_4_1 <-  all_pyclone %>%  do.call(rbind,.) 
@@ -207,15 +220,184 @@ plot_df$N <- factor(plot_df$N, levels = c("0","1", "2", "3", ">3"))
 p3_4 <- ggplot(data =  plot_df, mapping = aes(x = N, fill = N %>%  paste())) +
   geom_bar(colour = "white") +
   scale_fill_brewer("Clonality", palette = "Blues") +
-  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=12)) +
   facet_wrap(.~pipeline) +
   xlab("") + ylab("#subclones") + 
   ggtitle("Number of subclones in 1340 samples")
 ```
 
+Then finally panels g and j
+
+```{r}
+
+## this dataset can be obtained following the PCAWG data vignette
+snvs_evo_bind_drivers <- readRDS("drivers_as_prob.rds") %>%  mutate(prob = if_else(clonality == "clonal", p_clonal, 1 - p_clonal))
+
+p3_5 <- ggplot(snvs_evo_bind_drivers , aes(x = clonality, y = prob, color = clonality)) + 
+  geom_quasirandom(alpha = 0.8) + theme_minimal() + 
+  scale_color_brewer(palette = "Set2") + xlab("") + 
+  stat_compare_means(label.x = 1.3,label.y = 1.08) + ylim(0.35,1.15) + ggtitle("Cluster probability distribution") + theme(text = element_text(size=12))
+
+df3_6 <- snvs_evo_bind_drivers %>%  filter(clonality == "subclonal") %>%  
+  mutate(">50" = if_else(prob > 0.5 , T, F),
+         ">60" = if_else(prob > 0.6 , T, F),
+         ">70" = if_else(prob > 0.7 , T, F),
+         ">80" = if_else(prob > 0.8 , T, F),
+         ">90" = if_else(prob > 0.9 , T, F)) %>% select(starts_with(">"), gene, clonality) %>%  reshape2::melt(id.vars	
+                                                                                   = c("gene", "clonality"))
+
+p3_6 <- ggplot(df3_6 %>%  group_by(clonality, variable) %>%  summarize(N = sum(value)),
+               aes(x = variable, y = N)) + 
+  theme_bw() + geom_point(color = "black", alpha = 0.85) + xlab("Probability threshold") + 
+  ylab("#drivers") + ggtitle("Number of drivers with different probability thresholds") + theme(text = element_text(size=12))
+
+
+```
+
+To assemble the whole plot
+```{r}
+p3_mid = (p3_6 | p3_2 | p3_3) + patchwork::plot_layout(widths = c(1/2,1/4,1/4))
+p3 = p3_1 /p3_mid  / (p3_5 | p3_4) + patchwork::plot_layout(nrow =  4) + patchwork::plot_annotation(tag_levels = "a") &
+                                                                                theme(plot.tag = element_text(face = 'bold')) 
+
+p3 %>%  ggsave(.,filename = "figure_3.png", device = "png", units = "px", width = 4200, height = 4800)
+```
+
+
+
 ## Figure S1
 
+We first generate the panels a,b,c
+
+```{r}
+
+require(BMix)
+
+data <- readRDS("../germline_analysis.rds")
+
+### sample id 02c97e2b−914e−4afc−bf50−78f0cfbfa67b
+df2 <-  readRDS("example_figure_S1.rds")
+germline_SNPs <- readRDS("germline_figure_S1.rds")
+
+x <-  seq(0,100,by = 1)
+
+COV <- 45
+
+bin1 <-  dbinom(x, size = COV, prob = df2$BMIX$B.params[1]) %>%  data.frame(density = .) %>%
+  mutate(weight = 1, type = "bin1", x = x)
+bbin <- VGAM::dbetabinom(x, size = COV, prob = df2$BBMIX$BB.params[1,1], rho = df2$BBMIX$BB.params[2,1]) %>%  data.frame(density = .)%>%
+  mutate(weight = 1, type = "bbin", x = x)
+
+density <- rbind(bin1, bbin)
+
+hist <-  germline_SNPs %>% separate(X4, into = c("NR", "NV", "NO")) %>%
+  select(NR, NV) %>%  mutate(NR = as.numeric(NR), NV = as.numeric(NV))
+
+#hist <- hist %>%  mutate(NV = (NV / (NR + NV)) * 45 %>% round())
+
+p2_1 <-
+  ggplot(data = density , aes(x = x, y = density , color = type)) + geom_line(size = 1.5) + 
+  theme_bw() + xlim(0, 45) + xlab("") +
+  scale_color_brewer("model", palette = "Set1") + ylab("density") + ggtitle(paste0("bbin vs bin fits (rho= ",round(df2$BBMIX$BB.params[2],3),")"))
+
+p2_2 <- 
+  ggplot(data = hist %>% filter((NV / (NR + NV)) <  0.88, (NV / (NR + NV)) >  0.12), aes(x = NV)) + 
+  geom_histogram( alpha = .85, bins = 46) + theme_bw() + xlim(0, 45) + xlab("") +
+  scale_color_brewer("model", palette = "Set1") + ylab("density") + ggtitle(paste0("Number of variant reads"))
+
+
+BB_S <- data.frame(model = "bbin", NLL2 = df2$BBMIX$NLL * 2, AIC =2 * 2 + df2$BBMIX$NLL * 2,  BIC = df2$BBMIX$BIC)
+
+B1_S <- data.frame(model = "bin1", NLL2 = df2$BMIX$NLL * 2, AIC =2 * 1  +df2$BMIX$NLL * 2,  BIC = df2$BMIX$BIC)
+
+# B2_S <- data.frame(model = "bin2", NLL2 = BMIX_fit_B2$NLL * 2, ICL = BMIX_fit_B2$ICL,  BIC = BMIX_fit_B2$BIC)
+
+score_df <-  rbind(BB_S, B1_S)
+
+score_df_l <-  reshape2::melt(score_df, id.vars = c("model"))
+
+p2_3 <- ggplot(score_df_l , aes(x = variable %>%  as.factor(), y = value %>%  as.numeric(), fill = model %>%  as.factor())) +
+  geom_bar(stat="identity", position=position_dodge()) +
+  theme_bw() + xlab("") +
+  scale_fill_brewer("model", palette = "Set1") + ylab("score") + ggtitle("Fits score comparison 02c97e2b−914e−4afc−bf50−78f0cfbfa67b")
+
+
+```
+And panels d,e,f
+
+
+
+```{r}
+### Figure 2 panel B: Rho distribution (histogram)
+
+rho <-  readr::read_tsv("../rho_selected_cases.tsv")
+
+colnames(rho) <-  c("sample", "prob", "rho")
+
+p2_4 <- ggplot(rho, aes(x = rho)) + geom_histogram(bins = 60) + theme_bw() + ggtitle("Rho distribution in 41 selected samples")
+
+### Figure 2 panel C: Scatter of NLL and BIC values of B vs BB
+
+all_scores <-  lapply(data, function(x) x$scores) %>%  do.call(rbind,.)
+
+# p2_4 <- ggplot(all_scores %>%  select(model, sample, NLL2) %>% spread(data = ., key = model, value = c(NLL2))  ,
+#                aes(x = bbin / 2, y = bin1 / 2) ) + geom_point() + theme_bw() + xlim(1.25e5, 1.9e5)+ ylim(1.25e5, 1.9e5) + 
+#   geom_abline(color = "darkred", linetype = 2) + xlab("beta-binomial") + ylab("binomial") + ggtitle("NLL values for binomial and beta-binomial fits on het-SNPs")
+# 
+# 
+
+p2_5 <- ggplot(all_scores %>%  select(model, sample, AIC) %>% spread(data = ., key = model, value = c(AIC))  ,
+               aes(x = bbin , y = bin1 ) ) + geom_point() + theme_bw() +  xlim(2.5e5, 3.7e5)+ ylim(2.5e5, 3.7e5) +
+  geom_abline(color = "darkred", linetype = 2) + xlab("beta-binomial") + ylab("binomial") + ggtitle("AIC values for binomial and beta-binomial fits")
+
+
+p2_6 <- ggplot(all_scores %>%  select(model, sample, BIC) %>% spread(data = ., key = model, value = c(BIC))  ,
+               aes(x = bbin, y = bin1 ) ) + geom_point() + theme_bw() + xlim(2.5e5, 3.7e5)+ ylim(2.5e5, 3.7e5) + 
+  geom_abline(color = "darkred", linetype = 2) + xlab("beta-binomial") + ylab("binomial") + ggtitle("BIC values for binomial and beta-binomial fits")
+
+
+figS1 <- (p2_1 | p2_2) / (p2_3 | p2_4) / (p2_5 | p2_6)  + plot_annotation(tag_levels = 'a') &
+  theme(plot.tag = element_text(face = 'bold'))
+
+figS1 %>% ggsave(filename = "figure_S1.png", device = "png", units = "px", width = 3000, height = 3300)
+
+
+```
 
 ## Figure S2
 
+```{r}
+# this file can be obtained by following the PCAWG data vignette and then filtering for the 41 samples used 
+# in the plots that can be find in samples_letter.rda
+#cluster_probs_41_cases <- readr::read_csv("../../overdispersion/cluster_probs_41cases.csv")
 
+
+snvs_evo_bind <- all_PCWAG %>%  filter(Tumor_Sample_Barcode %in% (cluster_probs_41_cases$sample %>%  unique()))
+
+snvs_evo_bind_drivers <- snvs_evo_bind %>% filter(isdriver) %>% 
+  mutate(gene = paste0(gene,"_",substr(Tumor_Sample_Barcode,1,4) )) %>% 
+  select(gene, Chromosome, Start_position, clonality, Tumor_Sample_Barcode) %>%  rename(chromosome = Chromosome, position = Start_position, sample = Tumor_Sample_Barcode)
+
+
+snvs_evo_bind_drivers <- inner_join(cluster_probs_41_cases, snvs_evo_bind_drivers)
+
+plot_inp <- snvs_evo_bind_drivers  %>%  select(starts_with("cluster"), gene, clonality) %>%  reshape2::melt(id.vars = c("gene", "clonality")) %>% 
+  filter(variable != "cluster_4")
+p4_1_1 <- ggplot(plot_inp %>%  filter(clonality == "clonal"), aes(fill = value, x = gene, y = variable)) + 
+  geom_tile() + theme_minimal() + 
+  scale_fill_distiller("prob",palette = "RdBu") + xlab("") + ylab("") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Clonal drivers cluster probability")
+
+p4_1_2 <- ggplot(plot_inp %>%  filter(clonality == "subclonal"),  aes(fill = value, x = gene, y = variable)) + 
+  geom_tile() + theme_minimal() + 
+  scale_fill_distiller("prob",palette = "RdBu") + xlab("") + ylab("") +  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Subclonal drivers cluster probability")
+
+
+p4 <- p4_1_1 / p4_1_2  + plot_annotation(tag_levels = 'a')
+
+p4  %>%  ggsave(filename = "figure_S2.png", device = "png", plot = ., width = 12, height = 6.9)
+
+
+```
