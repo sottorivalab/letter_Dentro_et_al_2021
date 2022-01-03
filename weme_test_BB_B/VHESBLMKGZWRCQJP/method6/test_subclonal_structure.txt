@@ -1,2 +1,0 @@
-cluster	n_ssms	proportion
-1	2244	0.5013256069204423
