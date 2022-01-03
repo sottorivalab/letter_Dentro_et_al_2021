@@ -17,6 +17,6 @@ navbar:
       href: example_simulated_PCAWG.html
     - text: "Pyclone reclustering"
       href: pyclone_vi_fits.html
-    - text: "Compiling figure 3 and supplementary S2"
-      href: .html
+    - text: "Compiling figure 3 and supplementary S1/2"
+      href: figure_3_s2.html
       
