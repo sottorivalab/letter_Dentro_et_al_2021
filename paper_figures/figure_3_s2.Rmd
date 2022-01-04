@@ -1,8 +1,13 @@
 ---
 title: "Figure 3 and S1/2/4"
 author: "Salvatore Milite"
-date: "12/21/2021"
-output: html_document
+output:   
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
 ---
 ```{r, echo=FALSE}
 knitr::opts_chunk$set("eval" = FALSE)
