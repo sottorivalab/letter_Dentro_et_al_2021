@@ -1,2 +1,7 @@
 ./processed_data/maf_subclone_ccf.csv.gz
 ./processed_data/cluster_probs_41cases.csv.gz
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
