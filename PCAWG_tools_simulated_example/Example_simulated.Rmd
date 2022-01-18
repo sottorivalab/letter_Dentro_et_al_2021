@@ -1,6 +1,5 @@
 ---
 title: "Clustering à la PCWAG"
-author: "Salvatore Milite"
 output:   
   rmdformats::downcute:
     self_contained: true
@@ -26,25 +25,37 @@ Here we chose:
 
 For these methods, we could follow the tool documentation and, at least, run à la PCAWG analysis on simulated data.
 
+**The workingdir of this vignette is letter_Dentro_et_al_2021/PCAWG_tools_simulated_example**
+
+
 **Versioning.** To avoid versioning issues the packages used were included in the code bundle; this markdown does not run this installation code.
 
-```{r, eval = FALSE}
-### Unzip the source code for the packages
-unzip("PCAWG_tools.zip", overwrite = T)
+## Installstion procedure
+
+**We provide a docker image with eveyrhing necessary to run this vignette already installed, if you do not want to use docker than those are the specific version used**
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
 ```
+
 
 Install Ccube (in R).
 ```{r, eval = FALSE}
-devtools::install_local("ccube/")
+devtools::install_github('keyuan/ccube@6ad86869d8967ed4b1df25f4a9837c879c5b2601')
 ```
 
 Install DPClust (in R).
 ```{r, eval = FALSE}
-devtools::install_local("ccube/")
+devtools::install_github('Wedge-Oxford/dpclust@75f5d7ef1e3e53585f86801fde76dd4c4aa86324')
 ```
 
 Install PyClone-VI (via shell, with mini/anaconda).
+
 ```{bash, eval = FALSE}
+
+# Clone repository 
+git clone https://github.com/Roth-Lab/pyclone-vi.git
+
 # We assume you have mini/anaconda installed, for more information please refer to the pyclone-vi README
 cd pyclone-vi
 
@@ -80,10 +91,10 @@ require(ggplot2)
 require(cowplot)
 
 # Weme source code
-source("../weme.R")
+source("./weme.R")
 ```
 
-# Example dataset
+## Example dataset
 
 We generated a simulated dataset assuming:
 
@@ -239,8 +250,9 @@ data.frame(
   readr::write_tsv(., "pyclone_input/sample0_input.tsv")
 ```
 
-Fit is run through the conda environment previously created. We use miniforge on a macbook with M1 processor; this should point to your conda init script.
+Fit is run through the conda environment previously created. 
 ```{bash,eval = FALSE}
+## you don't have to do this if you use the docker
 source ~/miniforge3/etc/profile.d/conda.sh
 
 conda activate pyclone-vi
@@ -258,7 +270,7 @@ We  prepare the inputs; we retain only clusters with $>50$ mutations.
 
 **Method 1: CCube.**
 
-```{r, results = FALSE}
+```{r}
 dir.create("example_simulated", showWarnings = F)
 
 # Method 1 - Ccube
@@ -288,7 +300,7 @@ readr::write_tsv(
 
 **Method 2: DPClust**
 
-```{r, eval=FALSE}
+```{r}
 dir.create("example_simulated/method2", showWarnings = F)
 
 ## dpclust apparently returns the location in terms of total tumour cells so we multiply it by purity
@@ -311,7 +323,7 @@ readr::write_tsv(
 
 **Method 3: Pyclone-VI**
 
-```{r, eval=FALSE}
+```{r}
 dir.create("example_simulated/method3", showWarnings = F)
 
 pyclone_out <-
@@ -337,12 +349,12 @@ readr::write_tsv(
 
 From WeMe inputs we see that Pyclone-VI clusters the data in a single cluster, if we exclude an extremely small cluster on the left tail of the distribution. 
 ```{r}
-read.table(file = "./method3/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated//method3/example_subclonal_structure.txt", header = T)
 ```
 However, the  other algorithms push to fragment the clonal cluster into $>1$ clusters, leading to an error with respect to the starting generative model (monoclonal).
 ```{r}
-read.table(file = "./method1/example_subclonal_structure.txt", header = T)
-read.table(file = "./method2/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method1/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method2/example_subclonal_structure.txt", header = T)
 ```
 
 We compute the consensus.
@@ -443,7 +455,7 @@ ggplot(df_b,
 
 ![WeMe consensus](example_simulated/example.png)
 
-# Multiple simulations (generalisation)
+## Multiple simulations (generalisation)
 
 We provide code to reproduce the actual simulations with more replicates (not run here):
 

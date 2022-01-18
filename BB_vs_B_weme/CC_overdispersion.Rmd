@@ -1,7 +1,5 @@
 ---
 title: "Consensus clustering with overdispersion"
-author: "Giulio Caravagna (gcaravagna@units.it)"
-date: "6/24/2021"
 output: 
   rmdformats::downcute:
     self_contained: true
@@ -34,6 +32,9 @@ then WeMe is biased towards overfitting since it determines $K_{WeMe}=2>K$, repo
 # Simulated VAF spectrum
 
 We discuss a single-case simulation, and then perform a larger scale analysis.
+
+**The workingdir of this vignette is letter_Dentro_et_al_2021/BB_vs_B_weme**
+
 
 ```{r, message=FALSE, warning=FALSE}
 set.seed(1234)

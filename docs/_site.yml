@@ -3,20 +3,30 @@ output_dir: "."
 navbar:
   title: "Letter"
   left:
-    - text: "Home"
-      href: index.html
-    - text: "PCAWG data"
+  - text: "PCAWG analysis"
+    menu:
+    - text: "Input preparation"
       href: data.html
     - text: "PCAWG fits"
       href: fits.html
-    - text: "Germline overdispersion analysis"
-      href: germline_overdispersion_analysis.html
+  - text: "Overdispersion Analysis"
+    href: germline_overdispersion_analysis.html
+  - text: "WeMe simulations"
+    menu:
     - text: "Clustering simulations"
       href: CC_overdispersion.html
     - text: "Simulations of PCAWG methods"
-      href: example_simulated_PCAWG.html
-    - text: "Pyclone reclustering"
-      href: pyclone_vi_fits.html
-    - text: "Compiling figure 3 and supplementary S1/2"
-      href: figure_3_s2.html
-      
+      href: Example_simulated.html
+  - text: "Pyclone reclustering"
+    href: pyclone_vi_fits.html
+  - text: "Figures"
+    menu:
+    - text: "Figure 3"
+      href: figure_3_s4.html
+    - text: "Figure S1"
+      href: figure_s1.html        
+    - text: "Figure S2"
+      href: figure_s2.html
+    - text: "Figure S4"
+      href: figure_s4.html     
+        

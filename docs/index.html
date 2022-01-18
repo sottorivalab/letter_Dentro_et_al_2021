@@ -137,29 +137,62 @@
           </div>
           <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-              <li>
-        <a href="index.html">Home</a>
+              <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+          PCAWG analysis
+           
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          <li>
+            <a href="data.html">Input preparation</a>
+          </li>
+          <li>
+            <a href="fits.html">PCAWG fits</a>
+          </li>
+        </ul>
       </li>
       <li>
-        <a href="data.html">PCAWG data</a>
+        <a href="germline_overdispersion_analysis.html">Overdispersion Analysis</a>
       </li>
-      <li>
-        <a href="fits.html">PCAWG fits</a>
-      </li>
-      <li>
-        <a href="germline_overdispersion_analysis.html">Germline overdispersion analysis</a>
-      </li>
-      <li>
-        <a href="CC_overdispersion.html">Clustering simulations</a>
-      </li>
-      <li>
-        <a href="example_simulated_PCAWG.html">Simulations of PCAWG methods</a>
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+          WeMe simulations
+           
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          <li>
+            <a href="CC_overdispersion.html">Clustering simulations</a>
+          </li>
+          <li>
+            <a href="Example_simulated.html">Simulations of PCAWG methods</a>
+          </li>
+        </ul>
       </li>
       <li>
         <a href="pyclone_vi_fits.html">Pyclone reclustering</a>
       </li>
-      <li>
-        <a href="figure_3_s2.html">Compiling figure 3 and supplementary S1/2</a>
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+          Figures
+           
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          <li>
+            <a href="figure_3_s4.html">Figure 3</a>
+          </li>
+          <li>
+            <a href="figure_s1.html">Figure S1</a>
+          </li>
+          <li>
+            <a href="figure_s2.html">Figure S2</a>
+          </li>
+          <li>
+            <a href="figure_s4.html">Figure S4</a>
+          </li>
+        </ul>
       </li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
@@ -184,6 +217,22 @@
 <p>submitted as a matters arising for the paper</p>
 <p>– <em>Characterizing genetic intra-tumor heterogeneity across 2,658 human cancer genomes</em>. Dentro SC, Leshchiner I, Haase K, Tarabichi M, Wintersinger J, Deshwar AG, Yu K, Rubanova Y, Macintyre G, Demeulemeester J, Vázquez-García I, Kleinheinz K, Livitz DG, Malikic S, Donmez N, Sengupta S, Anur P, Jolly C, Cmero M, Rosebrock D, Schumacher SE, Fan Y, Fittall M, Drews RM, Yao X, Watkins TBK, Lee J, Schlesner M, Zhu H, Adams DJ, McGranahan N, Swanton C, Getz G, Boutros PC, Imielinski M, Beroukhim R, Sahinalp SC, Ji Y, Peifer M, Martincorena I, Markowetz F, Mustonen V, Yuan K, Gerstung M, Spellman PT, Wang W, Morris QD, Wedge DC, Van Loo P; PCAWG Evolution and Heterogeneity Working Group and the PCAWG Consortium. Cell. 184(8) 2021:2239-2254.e39.</p>
 <p>We use this website to allow full reprudicibility of our analyses.</p>
+<p>Each article provides the explanation for reproducing a particular point in the analysis. They cover the following points:</p>
+<ul>
+<li>Data generation and PCAWG CCF and clustering plots</li>
+<li>Germline overdispersion analysis</li>
+<li>WeMe consensus for beta-binomial vs binomial models</li>
+<li>WeMe consensus for a subset of deconvolution methods used in the paper</li>
+<li>Pyclone reanalysis</li>
+<li>Figure generation</li>
+</ul>
+<p>We provide a docker image with everything installed to follow the vignettes in the website. It provides a convenient RStudio server interface to run the analysis (built upon <code>rocker/tidyverse</code>):</p>
+<pre class="bash"><code>
+# user is by default rstudio
+# you can then connect to localhost:8787 on your machine 
+# and have an Rstudio server with all the packages ready  
+docker run -p 8787:8787 -v$(pwd):/home/rstudio/workspace:rw -e PASSWORD=yourpasswordhere  smilite/letter_cell
+</code></pre>
 </div>
 
    

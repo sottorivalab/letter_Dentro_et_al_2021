@@ -1,8 +1,5 @@
 ---
 title: "Overdispersion in germline SNPs"
-author: "Salvatore Milite"
-date: "12/16/2021"
-
 output: 
   rmdformats::downcute:
     self_contained: true
@@ -14,28 +11,39 @@ output:
 
 ---
 
-## 
+## Overdispersion from germline SNPs
 
 the germline analysis the function `generate_report_overdispersion` provides a complete report for overdispersion, with the 6 plots included in the Supplementary Data and binomial and beta-binomial MLE paramters. The input requires 5 objects that can be obtained from the PCWAG data release:
 
-* *snps*: germinal SNPs, they can be obtained from the normal and tumour BAMS (restricted access), the input table should have the 5 following field "chr", "ref", "alt", "AD", "DP". Where "ref" is the reference allele, “alt“ the alternative and "DP" and "AD" can be obtained from the VCF. Here we provide one example file to run the vignette. 
-*  *cna*: PCWAG consensus CN files, can be downloaded from https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170119.somatic.cna.annotated.tar.gz
-*  *meta*: a table with at least a coloumn named `purity` with the actual purity values for the sample. Can be downloaded from https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170217.purity.ploidy.txt.gz
+* *snps*: germinal SNPs, they can be obtained from the normal and tumour BAMS (restricted access), the input table should have the 5 following field "chr", "ref", "alt", "AD", "DP". Where "ref" is the reference allele, “alt“ the alternative and "DP" and "AD" can be obtained from the VCF.
+*  *cna*: [PCWAG consensus CN files](https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170119.somatic.cna.annotated.tar.gz)
+*  *meta*: a [table](https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170217.purity.ploidy.txt.gz) with at least a coloumn named `purity` with the actual purity values for the sample 
 *  *snvs*: maf_subclone_ccf.csv can be obtained as described in the `Process PCAWG data` article
 *  *name*: the sample name (just used to generate plot labels)
 
-If you don't already have the *cna* and *meta* files, you can automatically donwload them by running this chunk
+If you don't already have the *cna* and *meta* files, you can automatically download them by running this chunk
+
+**The workingdir of this vignette is letter_Dentro_et_al_2021/germline_overdispersion_analysis**
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+```
+
+
 ```{r, eval = FALSE}
 options(timeout=100)
+```
 
+
+```{r, eval = FALSE}
 download.file("https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170119.somatic.cna.annotated.tar.gz", destfile = "cnvs.tar.gz")
 download.file("https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170217.purity.ploidy.txt.gz", destfile = "meta.tar.gz")
 
 ```
 
-```{r}
+```{r, eval = FALSE}
 require(tidyverse)
-
 
 meta <-  readr::read_tsv("consensus.20170217.purity.ploidy.txt.gz") %>% split(., .$samplename)
 untar("consensus.20170119.somatic.cna.annotated.tar.gz", exdir = "cnas")
@@ -43,6 +51,16 @@ cnas <-  lapply(list.files(path = "cnas", full.names = T), function(x) readr::re
 
 cna_nms <- list.files(path = "cnas") %>%  substr(1,36)
 names(cnas) <-  cna_nms
+```
+
+We also provide the list of AD fields for germline SNPs of this 41 samples. To download them
+
+```{r, eval = FALSE}
+
+download.file("https://www.dropbox.com/s/ljyv82l9pkj5yqf/letter_SNPs_anonim.rds?dl=1", destfile = "letter_SNPs.rds")
+
+snps <- readRDS("letter_SNPs.rds")
+
 ```
 
 
@@ -69,8 +87,25 @@ res$BMIX
 
 ```
 
+To run it for all the samples (here we use our in house package for palatalization):
 
-We first have defined two helper function to perform the ![Tarone Z-test](https://academic.oup.com/biomet/article-abstract/66/3/585/232596?redirectedFrom=fulltext). The first one performs the standard Tarone test as defined in the paper. The other one provides a bootstapped version of the test and allows the computation of confidence interval, this second function is conceptually described in the following ![blog post](https://rpubs.com/cakapourani/beta-binomial)
+```{r, eval = FALSE}
+require(easypar)
+
+inputs <- mapply(snps, snvs, cnas, names, meta, function(x1,x2,x3,x4,x5) list(snps = x1, snvs = x2, cna = x3,
+                                                                              name = x4, meta = x5), SIMPLIFY = FALSE)
+
+easypar::run(generate_report_overdispersion,
+             inputs, parallel = T, 
+             filter_errors = TRUE, 
+             cores.ratio = 0.5 )
+
+
+```
+
+## Tarone Z-test
+
+We first have defined two helper function to perform the [Tarone Z-test](https://academic.oup.com/biomet/article-abstract/66/3/585/232596?redirectedFrom=fulltext) . The first one performs the standard Tarone test as defined in the paper. The other one provides a bootstapped version of the test and allows the computation of confidence interval, this second function is conceptually described in the following [blog post](https://rpubs.com/cakapourani/beta-binomial)
 
 ```{r}
 Tarone.test <- function(N, M) {
@@ -152,6 +187,8 @@ Tarone.test <- function(N, M) {
 Tarone_Boostrap <-
   function(x,
            num_samples = 1000)  {
+    
+    library(tidyverse)
 
 
     N = x$DP %>% as.numeric()
@@ -214,27 +251,31 @@ Tarone_Boostrap <-
 
 ```
 
+## Reproducing supplementary dataset 2
 
-We then start by plotting the density and the histograms of the fitted distribution. To fit the binomial and beta-binomial here we used the package ![Bmix](https://github.com/caravagnalab/BMix) which for one components performs just a simple numerical optimization of the Negative Log-Likelihood (NLL). Another problem is the presence of homozygous SNPs in around VAF=1 and technical artifact around VAF=0. In order to remove themwe filter SNPs at a frequency < 0.12 and > 0.88, this provides a decent result.
+To illustrate how the figure is made, we released a sample dataset for a single patient and we will explain how the panels are made.
+
+We start by plotting the density and the histograms of the fitted distribution. To fit the binomial and beta-binomial here we used the package ![Bmix](https://github.com/caravagnalab/BMix) which for one components performs just a simple numerical optimization of the Negative Log-Likelihood (NLL). Another problem is the presence of homozygous SNPs in around VAF=1 and technical artifact around VAF=0. In order to remove themwe filter SNPs at a frequency < 0.12 and > 0.88, this provides a decent result.
 
 ```{r}
+require(dplyr)
+require(ggplot2)
+
 set.seed(3)
 
-snps <- readRDS("germline_SNPs_example.rds")
+example <- readRDS("germline_SNPs_example.rds")
+
+snps <- example$snps
 
 name <-  "50e3a421-9741-4cd8-911b-0f47ca518b6a"
 
-colnames(snps) <-  c("chr", "ref", "alt", "AD", "DP")
+colnames(snps) <-  c("mut_id", "AD", "DP")
 
   # Separate the AD filed to obtain DR and DV
 snps <-
   snps %>% tidyr::separate(col = "AD",
                            into = c("DR", "DV", "DO"),
-                           sep = ",") %>%
-  separate(col = "alt",
-           into = c("alt", "other"),
-           sep = ",")
-
+                           sep = ",") 
 
 # Filter multiallelic SNPs
 snps_filt <- snps %>%  filter(DO == 0)
@@ -308,6 +349,7 @@ dens_plot <-
 dens_plot
 
 ```
+
 We then compared some commonly used model selection scores among the two fits. The NLL alone usually favors more complex model, the BIC and AIC penalize complexity, the BIC increases its penalty with the number of mutations.
 
 ```{r}
@@ -335,7 +377,7 @@ vaf_plot
 
 ```{r}
 
-cna <-  cnas$`50e3a421-9741-4cd8-911b-0f47ca518b6a`
+cna <-  example$cna
 
 ```
 
@@ -343,8 +385,8 @@ cna <-  cnas$`50e3a421-9741-4cd8-911b-0f47ca518b6a`
 ```{r}
 tarone_plot <- Tarone_Boostrap(bmix_data_s %>% mutate(NV = DV, VAF = NV / DP))
 
-cna_p <-  cna %>% filter(!is.na(major_cn)) %>% mutate(karyotype = paste0(major_cn, ":", minor_cn), length = end - start) %>%
-  mutate(is_diploid = ifelse(karyotype == "1:1", "diploid", "aneuploid"), length = end - start ) %>%
+cna_p <-  cna %>% filter(!is.na(Major)) %>% mutate(karyotype = paste0(Major, ":", minor), length = to - from) %>%
+  mutate(is_diploid = ifelse(karyotype == "1:1", "diploid", "aneuploid"), length = to - from ) %>%
   dplyr::select(length, is_diploid) %>% group_by(is_diploid) %>%  summarize(t_length = sum(length)) %>%
   mutate(t_length =(t_length / sum(t_length)) %>% round(2))
 
