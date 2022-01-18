@@ -9,16 +9,11 @@ generate_report_overdispersion <- function(snps, snvs, cna, name, meta){
 
   print(paste0("Processing sample ", name))
 
-  colnames(snps) <-  c("chr", "ref", "alt", "AD", "DP")
-
   # Separate the AD filed to obtain DR and DV
   snps <-
     snps %>% tidyr::separate(col = "AD",
                              into = c("DR", "DV", "DO"),
-                             sep = ",") %>%
-    separate(col = "alt",
-             into = c("alt", "other"),
-             sep = ",")
+                             sep = ",") 
 
 
   # Filter multiallelic SNPs

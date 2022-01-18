@@ -20,5 +20,24 @@ submitted as a matters arising for the paper
 
 We use this website to allow full reprudicibility of our analyses.
 
+Each article provides the explanation for reproducing a particular point in the analysis. They cover the following points:
+
+* Data generation and PCAWG CCF and clustering plots
+* Germline overdispersion analysis
+* WeMe consensus for beta-binomial vs binomial models
+* WeMe consensus for a subset of deconvolution methods used in the paper
+* Pyclone reanalysis
+* Figure generation
+
+We provide a docker image with everything installed to follow the vignettes in the website. It provides a convenient RStudio server interface to run the analysis (built upon `rocker/tidyverse`):
+
+```{bash, eval = FALSE}
+
+# user is by default rstudio
+# you can then connect to localhost:8787 on your machine 
+# and have an Rstudio server with all the packages ready  
+docker run -p 8787:8787 -v$(pwd):/home/rstudio/workspace:rw -e PASSWORD=yourpasswordhere  smilite/letter_cell
+
+```
 
  

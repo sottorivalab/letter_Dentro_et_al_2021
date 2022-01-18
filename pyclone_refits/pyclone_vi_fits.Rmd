@@ -1,8 +1,5 @@
 ---
 title: "Pyclone-VI fitting"
-author: "Salvatore Milite"
-date: "12/16/2021"
-
 output: 
   rmdformats::downcute:
     self_contained: true
@@ -12,6 +9,16 @@ output:
     highlight: tango
 
 ---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  eval = FALSE
+)
+```
+
+
+## Building Pyclone input
 
 In order to rerun the clustering assignments with pyclone-vi we first format the data to create the right input files.
 
@@ -52,17 +59,18 @@ format_to_pyclone <-  function(xx,purity){
 
 ```
 
+## Loading input data
+
 Here we assume you have the data as described in the `PCAWG data` vignette, the input here is a list of data.frame for each sample in the object `snvs_list`. For the metadata and the pyclone-vi installation the code is presented in the `Germline overdispersion analysis` vignette.
 
-```{r, eval = FALSE}
-library(tidyverse
-        )
+```{r}
+library(tidyverse)
 
 # this file is produced at the end of the first vignete
-maf_ccf <-  readr::read_csv("maf_subclone_ccf.csv.gz")
+maf_ccf <-  readr::read_csv("../processed_data/maf_subclone_ccf.csv.gz")
 
 # you can download this file by running a chunk in Germline overdispersion analysis vignette
-meta <-  readr::read_tsv("../germline_overdispersion_analysis/consensus.20170217.purity.ploidy.txt.gz") %>% split(., .$samplename)
+meta <-  readr::read_tsv("../germline_overdispersion_analysis/meta.tar.gz") %>% split(., .$samplename)
 
 snvs_list <- maf_ccf %>% split(., .$Tumor_Sample_Barcode)
 
@@ -73,7 +81,7 @@ names <- names(snvs_list)
 ```
 
 
-```{r, eval = FALSE}
+```{r}
 
 
 meta <- lapply(meta, function(x) x$purity)
@@ -87,6 +95,8 @@ mapply(py_clone_VI, names(py_clone_VI), FUN = function(x,y) {
 
 })
 ```
+
+## Running the actual analysis
 
 We then fit the pyclone-vi model and plot the data. The pyclone running script is written in the file `pyclone_refits/pyclone.sh`
 
@@ -129,17 +139,19 @@ plot_pyclone <- function(x){
     p12 <- p1 / p2
     
     p12 %>%  ggplot2::ggsave(filename = "pyclone_plot.pdf", units = "px", device = "pdf", width = 2400, height = 3600)
+    
+    return(p12)
   }
   setwd("..")
 }
 ```
 
-Here we use the package ![easypar](https://github.com/caravagn/easypar) to implement parallel execution.
+Here we use the package [easypar](https://github.com/caravagn/easypar) to implement parallel execution. For the sake of compiling the vignette we are just running the first 64 samples.
 
-```{r, results='hide', message=FALSE, eval = FALSE}
-easypar::run(lapply(names[1:2] , list), FUN = run_pyclone, filter_errors = F, export = NULL,parallel = T,
+```{r, results='hide', message=FALSE}
+easypar::run(lapply(names[1:64] , list), FUN = run_pyclone, filter_errors = F, export = NULL,parallel = T,
              cores.ratio = 0.6)
-easypar::run(lapply(names[1:2] , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
+plots <- easypar::run(lapply(names[1:64] , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
              cores.ratio = 0.6)
 ```
 We then assemble the results in a data.frame
@@ -152,10 +164,18 @@ read_pyclone_BB_res <- function(x)
 ```
 
 
-```{r, eval=FALSE}
-all_pyclone_BB <-  easypar::run(lapply(names[1:2], list),FUN =  read_pyclone_BB_res, export = NULL, filter_errors = F )
+```{r}
+all_pyclone_BB <-  easypar::run(lapply(names, list),FUN =  read_pyclone_BB_res, export = NULL, filter_errors = F )
 
 saveRDS(all_pyclone_BB, file = "./pyclone_BB_all.rds")
+
+```
+## Plots
+
+```{r}
+require(ggpubr)
+
+ggarrange(plots[1:64], nrow = 8, ncol = 8, common.legend = TRUE)
 
 ```
 
