@@ -1,6 +1,6 @@
 # letter_Dentro_et_al_2021
 
-This repository contains the code used to produce all the analyses and figures in the letter. The code has been organized into articles that can be accessed at the following [link](https://github.com/sottorivalab/letter_Dentro_et_al_2021). 
+This repository contains the code used to produce all the analyses and figures in the letter. The code has been organized into articles that can be accessed at the following [link](https://sottorivalab.github.io/letter_Dentro_et_al_2021/). 
 
 Each article provides the explanation for reproducing a particular point in the analysis. They cover the following points:
 
