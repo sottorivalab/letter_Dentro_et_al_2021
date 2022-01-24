@@ -12,8 +12,7 @@ output:
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  eval = FALSE
+  collapse = TRUE
 )
 ```
 
@@ -63,7 +62,7 @@ format_to_pyclone <-  function(xx,purity){
 
 Here we assume you have the data as described in the `PCAWG data` vignette, the input here is a list of data.frame for each sample in the object `snvs_list`. For the metadata and the pyclone-vi installation the code is presented in the `Germline overdispersion analysis` vignette.
 
-```{r}
+```{r, eval = FALSE}
 library(tidyverse)
 
 # this file is produced at the end of the first vignete
@@ -81,14 +80,14 @@ names <- names(snvs_list)
 ```
 
 
-```{r}
+```{r, eval = FALSE}
 
 
 meta <- lapply(meta, function(x) x$purity)
 
-py_clone_VI <-  mapply(snvs_list, meta,FUN = function(x,y) format_to_pyclone(x, y), SIMPLIFY = F)
+py_clone_VI <-  mapply(snvs_list[1:32], meta,FUN = function(x,y) format_to_pyclone(x, y), SIMPLIFY = F)
 
-mapply(py_clone_VI, names(py_clone_VI), FUN = function(x,y) {
+mapply(py_clone_VI, names(py_clone_VI)[1:32], FUN = function(x,y) {
 
   dir.create(y, showWarnings = F)
   write.table(x, file = paste0("./", y, "/pyclone_input.tsv"), sep = "\t", row.names = F, quote = F)
@@ -118,8 +117,6 @@ plot_pyclone <- function(x){
   library(tidyverse)
   # rplot ccf histogram in each directory and go back to the original wd
   setwd(x)
-  if(!file.exists("pyclone_plot.pdf"))
-  {
     
     inp <-  readr::read_tsv("pyclone_output.tsv") %>% separate(col = mutation_id,
                                                                into = c("chr", "from", "to", "ccf", "gene", "is_driver"),
@@ -140,23 +137,25 @@ plot_pyclone <- function(x){
     
     p12 %>%  ggplot2::ggsave(filename = "pyclone_plot.pdf", units = "px", device = "pdf", width = 2400, height = 3600)
     
+    setwd("..")
+    
     return(p12)
-  }
-  setwd("..")
+ 
+  
 }
 ```
 
-Here we use the package [easypar](https://github.com/caravagn/easypar) to implement parallel execution. For the sake of compiling the vignette we are just running the first 64 samples.
+Here we use the package [easypar](https://github.com/caravagn/easypar) to implement parallel execution. For the sake of compiling the vignette we are just running the first 32 samples.
 
-```{r, results='hide', message=FALSE}
-easypar::run(lapply(names[1:64] , list), FUN = run_pyclone, filter_errors = F, export = NULL,parallel = T,
+```{r, results='hide', message=FALSE, eval = FALSE}
+easypar::run(lapply(names[1:32] , list), FUN = run_pyclone, filter_errors = F, export = NULL,parallel = T,
              cores.ratio = 0.6)
-plots <- easypar::run(lapply(names[1:64] , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
+plots <- easypar::run(lapply(names[1:32] , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
              cores.ratio = 0.6)
 ```
 We then assemble the results in a data.frame
 
-```{r}
+```{r, eval = FALSE}
 read_pyclone_BB_res <- function(x) 
 {
   readr::read_tsv(file.path(x, "pyclone_output.tsv"))
@@ -164,18 +163,26 @@ read_pyclone_BB_res <- function(x)
 ```
 
 
-```{r}
+```{r, eval = FALSE}
 all_pyclone_BB <-  easypar::run(lapply(names, list),FUN =  read_pyclone_BB_res, export = NULL, filter_errors = F )
 
 saveRDS(all_pyclone_BB, file = "./pyclone_BB_all.rds")
 
 ```
+
+```{r, include = FALSE}
+
+plots <- readRDS("plots_pyclone_64.rds")[1:32]
+
+```
+
+
 ## Plots
 
-```{r}
+```{r, message=FALSE, warning=FALSE, prompt=FALSE, results='hide', figures-side, fig.show="hold", out.width="50%"}
 require(ggpubr)
 
-ggarrange(plots[1:64], nrow = 8, ncol = 8, common.legend = TRUE)
+plots
 
 ```
 

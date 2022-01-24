@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, eval = FALSE)
+knitr::opts_chunk$set(collapse = TRUE, eval = TRUE)
 ```
 
 ## Figure S1
@@ -23,6 +23,8 @@ We first generate the panels a,b,c
 ```{r}
 
 require(BMix)
+require(tidyverse)
+require(patchwork)
 
 data <- readRDS("../germline_analysis.rds")
 
