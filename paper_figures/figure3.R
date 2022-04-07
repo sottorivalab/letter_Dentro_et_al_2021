@@ -8,14 +8,14 @@ plot_hist <- function(data) {
   
   clusters$new_clusters <-  seq(1:nrow(clusters)) %>%  paste
   
-  data_1 <- inner_join(data,clusters) %>% select(ccf.y, new_clusters, name, is_driver, gene.y, clonality)
+  data_1 <- inner_join(data,clusters) %>% select(ccf.y, new_clusters, name, isdriver, gene.x, clonality)
   
   data_1$pipeline <-  "PCWAG"
   
   clusters_2 <- data %>% group_by(cluster_id) %>%  summarise(mean_ccf = cellular_prevalence %>% unique()) %>% arrange(-mean_ccf)
   clusters_2$new_clusters <-  seq(1:nrow(clusters_2)) %>%  paste
   
-  data_2 <- inner_join(data,clusters_2)%>% select(ccf.y, new_clusters, name, is_driver, gene.y, clonality)
+  data_2 <- inner_join(data,clusters_2)%>% select(ccf.y, new_clusters, name, isdriver, gene.x, clonality)
   
   data_2$pipeline <-  "Pyclone"
   
@@ -23,14 +23,14 @@ plot_hist <- function(data) {
   
   ggplot(data = data_plot, aes(x = ccf.y %>% as.numeric, fill = new_clusters %>%  paste)) +
     geom_histogram(bins = 100, position = "stack", alpha = 0.6) +
-    geom_text_repel(data = data_plot %>%  filter(is_driver != "NA",  clonality == "subclonal"),
-                    aes(label = gene.y, y = Inf, x = ccf.y %>%  as.numeric), colour = "black",
+    geom_text_repel(data = data_plot %>%  filter(isdriver == TRUE,  clonality == "subclonal"),
+                    aes(label = gene.x, y = Inf, x = ccf.y %>%  as.numeric), colour = "black",
                     label.size = 0.01, alpha = 0.85) +
-    geom_vline(data = data_plot %>%  filter(is_driver != "NA", clonality == "subclonal"),
+    geom_vline(data = data_plot %>%  filter(isdriver == TRUE, clonality == "subclonal"),
                aes(xintercept = ccf.y %>% as.numeric, colour = new_clusters %>%  paste), lty = 2, show.legend = FALSE) +
     scale_fill_brewer("cluster",palette = "Dark2", aesthetics = c("colour", "fill")) +
     facet_wrap(.~pipeline, scales = "free_y") + ggtitle(data_plot$name %>% unique()) +
-    theme_bw() + theme(legend.position = "None", plot.title = element_text(hjust = 0.5),text = element_text(size=20) ) +
+    theme_bw() + theme(legend.position = "None", plot.title = element_text(hjust = 0.5),text = element_text(size=15) ) +
     xlim(c(0,2)) +
     xlab("CCF") +
     ylab("Counts") 
@@ -40,16 +40,16 @@ plot_hist <- function(data) {
 # As this data is closed access we cannot share it, we provide the columns you need from the original PCWAG data release 
 # to make this script work, you also need results from pyclone as obtained by our pipeline
 
-all_pyclone <- readRDS("../overdispersion/letter_pyclone_BB_all.rds")
-all_PCWAG <- data.table::fread("../overdispersion/maf_ccf_withdriver.csv", data.table = F)
+all_pyclone <- readRDS("../processed_data/letter_pyclone_BB_all.rds")
+all_PCWAG <- data.table::fread("../processed_data/maf_subclone_ccf.csv.gz", data.table = F)
 
 # This file is publicly downloadable at this link https://dcc.icgc.org/releases/PCAWG/evolution_and_heterogeneity
-annots <- data.table::fread("../overdispersion/icgc_sample_annotations_summary_table.txt", data.table=F) %>% rename(sample_id = tumour_aliquot_id) %>%
+annots <- data.table::fread("../icgc_sample_annotations_summary_table.txt", data.table=F) %>% rename(sample_id = tumour_aliquot_id) %>%
   mutate(name = paste0(histology_abbreviation, "\n",icgc_sample_id)) %>%
   select(sample_id, name)
 
 # We have a subset of manually choosen 41 samples
-load("samples_letter.rda", verbose = T)
+load("../samples_letter.rda", verbose = T)
 
 all_pyclone_letter <- all_pyclone %>%  do.call(rbind,.) %>% filter(sample_id %in% nms_letter)
 
@@ -126,7 +126,7 @@ p3_2_df2 <- dplyr::inner_join(all_PCWAG %>% select(-clonality, - gene )%>%  muta
 p3_2_df2 <- p3_2_df2 %>% group_by(sample_id) %>% mutate(clonal_ccfs = max(cellular_prevalence)) %>%  filter(Variant_Type == "SNP")                                                                           
 p3_2_df2 <-  p3_2_df2 %>% mutate(clonality = if_else(cellular_prevalence > 0.9, "clonal", "subclonal")) %>% mutate(clonality = if_else(cellular_prevalence == clonal_ccfs,
                                                                                                                                        "clonal", clonality))
-p3_2_df2_aggr <- p3_2_df2 %>% filter(is_driver != "NA") %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
+p3_2_df2_aggr <- p3_2_df2 %>% filter(isdriver == TRUE) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
 
 p3_2_df2_aggr$pipeline <- "PyClone"
 p3_2_df1$pipeline <-  "PCWAG"
@@ -134,14 +134,14 @@ p3_2_df1$pipeline <-  "PCWAG"
 p3_2 <- ggplot(data =  rbind(p3_2_df2_aggr, p3_2_df1)%>% filter(clonality == "subclonal"),
                mapping = aes(x = pipeline , y = N)) +
   geom_col(colour = "black", size = 0.3, fill = "gainsboro", alpha = 0.8) +
-  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=15)) +
   xlab("") + ylab("#drivers") + 
-  ggtitle("Subclonal SNV drivers in 1340 samples")
+  ggtitle("Subclonal SNV drivers\n in 1340 samples")
 
 
 #p3_2 %>%  ggsave(filename = "p3_2.pdf", device = "pdf")
 
-p3_3_df1 <- p3_2_df2 %>%  filter(sample_id %in% nms_letter, is_driver != "NA", mut_type == "SNV" ) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
+p3_3_df1 <- p3_2_df2 %>%  filter(sample_id %in% nms_letter, isdriver == TRUE, mut_type == "SNV" ) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
 p3_3_df2 <- all_PCWAG %>% filter(isdriver == T,mut_type == "SNV" ) %>%  filter(Tumor_Sample_Barcode %in% nms_letter) %>%  group_by(clonality) %>%  summarize(N = n()) %>% filter(clonality %in% c("clonal", "subclonal"))
 
 p3_3_df1$pipeline <- "PyClone"
@@ -150,9 +150,9 @@ p3_3_df2$pipeline <-  "PCWAG"
 p3_3 <- ggplot(data =  rbind(p3_3_df1, p3_3_df2) %>% filter(clonality == "subclonal"),
                mapping = aes(x = pipeline , y = N )) +
   geom_col(colour = "black", size = 0.3, alpha = 0.8, fill = "gainsboro") +
-  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=15)) +
   xlab("") + ylab("#drivers") + 
-  ggtitle("Subclonal SNV drivers in 41 samples with clonal split")
+  ggtitle("Subclonal SNV drivers \nin selected samples")
 
 #p3_3 %>%  ggsave(filename = "p3_3.pdf", device = "pdf")
 
@@ -181,18 +181,18 @@ plot_df$N <- factor(plot_df$N, levels = c("0","1", "2", "3", ">3"))
 p3_4 <- ggplot(data =  plot_df, mapping = aes(x = N, fill = N %>%  paste())) +
   geom_bar(colour = "white") +
   scale_fill_brewer("Clonality", palette = "Blues") +
-  theme_bw() + theme(legend.position = "None", text = element_text(size=20)) +
+  theme_bw() + theme(legend.position = "None", text = element_text(size=15)) +
   facet_wrap(.~pipeline) +
   xlab("") + ylab("#subclones") + 
   ggtitle("Number of subclones in 1340 samples")
 
 
-snvs_evo_bind_drivers <- readRDS("../overdispersion/drivers_as_prob.rds") %>%  mutate(prob = if_else(clonality == "clonal", p_clonal, 1 - p_clonal))
+snvs_evo_bind_drivers <- readRDS("../processed_data/drivers_as_prob.rds") %>%  mutate(prob = if_else(clonality == "clonal", p_clonal, 1 - p_clonal))
 
 p3_5 <- ggplot(snvs_evo_bind_drivers , aes(x = clonality, y = prob, color = clonality)) + 
-  geom_quasirandom(alpha = 0.8) + theme_minimal() + 
+  ggbeeswarm::geom_quasirandom(alpha = 0.8) + theme_minimal() + 
   scale_color_brewer(palette = "Set2") + xlab("") + 
-  stat_compare_means(label.x = 1.3,label.y = 1.08) + ylim(0.35,1.15) + ggtitle("Cluster probability distribution")
+  ggpubr::stat_compare_means(label.x = 1.3,label.y = 1.08) + ylim(0.35,1.15) + ggtitle("Cluster probability distribution")  + theme(text = element_text(size=15))
 
 df3_6 <- snvs_evo_bind_drivers %>%  filter(clonality == "subclonal") %>%  
   mutate(">50" = if_else(prob > 0.5 , T, F),
@@ -205,12 +205,12 @@ df3_6 <- snvs_evo_bind_drivers %>%  filter(clonality == "subclonal") %>%
 p3_6 <- ggplot(df3_6 %>%  group_by(clonality, variable) %>%  summarize(N = sum(value)),
                aes(x = variable, y = N)) + 
   theme_bw() + geom_point(color = "black", alpha = 0.85) + xlab("Probability threshold") + 
-  ylab("#drivers") + ggtitle("Number of drivers with different probability thresholds") + theme(text = element_text(size=20))
+  ylab("#drivers") + ggtitle("Number of drivers with different\nprobability thresholds", ) + theme(text = element_text(size=15))
 
+p3_middle <- (p3_2 | p3_3 | p3_4)  + patchwork::plot_layout(widths = c(1,1,2.6))
 
-
-p3 = p3_1 / (p3_2 | p3_3 | p3_4) / (p3_5 | p3_6) + patchwork::plot_layout(nrow =  4) + patchwork::plot_annotation(tag_levels = "a") &
+p3 = p3_1 /p3_middle / (p3_5 | p3_6) + patchwork::plot_layout(nrow =  4) + patchwork::plot_annotation(tag_levels = "a") &
                                                                                 theme(plot.tag = element_text(face = 'bold')) 
 
-p3 %>%  ggsave(.,filename = "figure_3.png", device = "png", units = "px", width = 4800, height = 4800)
+p3 %>%  ggsave(.,filename = "figure_3.png", device = "png", units = "px", width = 4800, height = 5000)
 
