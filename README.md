@@ -19,14 +19,3 @@ We also release some processed dataset obtained from the analysis of overdispesi
 * `letter_SNPs.rds` an RDS file with the AD field for germline SNPs piled-up from tumour BAMs (download link is in the vignette).
 
 
-
-We provide a docker image with everything installed to follow the vignettes in the website. It provides a convenient RStudio server interface to run the analysis (built upon `rocker/tidyverse`):
-
-```{bash}
-
-# user is by default rstudio
-# you can then connect to localhost:8787 on your machine 
-# and have an Rstudio server with all the packages ready  
-docker run -p 8787:8787 -v$(pwd):/home/rstudio/workspace:rw -e PASSWORD=yourpasswordhere  smilite/letter_cell
-
-```

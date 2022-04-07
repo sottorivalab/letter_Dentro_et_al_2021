@@ -1,2 +1,2 @@
 sample	purity	ploidy
-example	0.500000	2.000000
+example	0.800000	2.000000
