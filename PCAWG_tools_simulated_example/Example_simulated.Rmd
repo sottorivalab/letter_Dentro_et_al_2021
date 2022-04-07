@@ -9,65 +9,9 @@ output:
     highlight: tango
 ---
 
-We discuss here PCAWG consensus clustering, re-implemented in simpler form.
-
-# Motivation
-
-An automatic runnable  pipeline was never released by PCAWG; therefore, the best we could achieve was a re-implementation of part of it. In order to reproduce the very same pipelines we have found missing details regarding model selection procedures (e.g., with CliP),  specific inputs  to build the files used for clustering (e.g., with Sclust), and other general limitations. 
-
-We opted then to run 2 tools with binomial likelihood and one with beta-binomial likelihood, which is  a similar ratio to the original pipeline (2 vs 7 methods). 
-
-Here we chose:
-
-* [Pyclone-VI](https://github.com/Roth-Lab/pyclone-vi) (beta-binomial), a variational extension of the Markov Chain Monte Carlo [Pyclone](https://github.com/Roth-Lab/pyclone)
-* [Ccube](https://github.com/keyuan/ccube) (normal-binomial)
-* [DPclust](https://github.com/Wedge-lab/dpclust) (binomial)
-
-For these methods, we could follow the tool documentation and, at least, run à la PCAWG analysis on simulated data.
-
-**The workingdir of this vignette is letter_Dentro_et_al_2021/PCAWG_tools_simulated_example**
 
 
-**Versioning.** To avoid versioning issues the packages used were included in the code bundle; this markdown does not run this installation code.
 
-## Installstion procedure
-
-**We provide a docker image with eveyrhing necessary to run this vignette already installed, if you do not want to use docker than those are the specific version used**
-
-```{r, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE)
-```
-
-
-Install Ccube (in R).
-```{r, eval = FALSE}
-devtools::install_github('keyuan/ccube@6ad86869d8967ed4b1df25f4a9837c879c5b2601')
-```
-
-Install DPClust (in R).
-```{r, eval = FALSE}
-devtools::install_github('Wedge-Oxford/dpclust@75f5d7ef1e3e53585f86801fde76dd4c4aa86324')
-```
-
-Install PyClone-VI (via shell, with mini/anaconda).
-
-```{bash, eval = FALSE}
-
-# Clone repository 
-git clone https://github.com/Roth-Lab/pyclone-vi.git
-
-# We assume you have mini/anaconda installed, for more information please refer to the pyclone-vi README
-cd pyclone-vi
-
-# Environment, create and activate
-conda create -c conda-forge -n pyclone-vi --file requirements.txt --yes
-source activate pyclone-vi
-
-# Installation
-pip install git+https://github.com/Roth-Lab/pyclone-vi.git
-
-cd ..
-```
 **Other required packages.**
 
 ```{r, message=FALSE, results='hide', echo=FALSE}
@@ -109,33 +53,48 @@ All these values are well representative of the PCAWG data quality.
 ```{r}
 # Parameters
 MEAN_COV <- 45
-RHO <- 0.015
-N <- 5000
-purity  <-  0.65
+#RHO <- 0.015
+N <- 3000
+purity  <-  0.50
+p_clonal <- 9/10
+p_tail <- 1/10
 ```
 
 Synthetic read-counts.
 ```{r}
 # Poisson-distributed coverage
-DP <-  rpois(N, MEAN_COV)
+# small residual tail
+DP_clonal <-  rpois(round(N * p_clonal), MEAN_COV)
+
+DP_tail <-  rpois(round(N * p_tail), MEAN_COV)
 
 # Beta-Binomial reads with the variant
-NV <- rbetabinom(N, size = DP, prob = 0.5 * purity, rho = RHO)
+NV_clonal <- rbetabinom(round(N * p_clonal) , size = DP_clonal, prob = purity * 0.5, rho = RHO)
+
+NV_tail <- rbetabinom(round(N * p_tail), size = DP_tail, prob = VGAM::rtruncpareto(n = round(N * 1/5), 0.05,purity * 1, shape = 2), rho = RHO)
+
+DP <- c(DP_tail, DP_clonal)
+NV <- c(NV_tail, NV_clonal)
+
+tom <- NV > 0
+NV <- NV[tom]
+DP <- DP[tom]
 
 # Random genomic coordinates
-chr <- rep(1, N)
-position <- sample.int(1e8, size = N, replace = T) %>% sort()
+chr <- rep(1, sum(tom))
+
+position <- sample.int(1e8, size = sum(tom), replace = T) %>% sort()
 
 # Data
 inp <-  data.frame(chr, position, DP, NV, VAF = NV /DP)
 save(inp, file = "input_data.rda")
-
+nrow(inp)
 ```
 Synthetic data plots
 ```{r}
 hist(DP)
 hist(NV)
-hist(NV/DP) # VAF
+hist(NV/DP, breaks = 100) # VAF
 ```
 
 # Ccube analysis (normal-binomial, variational)
@@ -152,8 +111,7 @@ ccube_inp <- data.frame(
   minor_cn = 1,
   total_cn = 2,
   purity = purity,
-  n
-  ormal_cn = 1,
+  normal_cn = 2,
   mutation_id = paste(chr, position, sep = "_"),
   var_counts = NV,
   ref_counts = DP - NV,
@@ -166,7 +124,8 @@ results_ccube <- RunCcubePipeline(
   numOfClusterPool = numOfClusterPool,
   numOfRepeat = numOfRepeat,
   runAnalysis = T,
-  runQC = T
+  runQC = T, multiCore = T
+  
 )
 
 # Save results
@@ -213,8 +172,13 @@ data.frame(
 For DPClust we use the pipeline that can be found in the package, it is also available as a docker image. The code below is not run by this markdown.
 
 ```{bash, eval = FALSE}
+
+source ~/.bashrc
+
 mkdir -p output_dpclust
 cd dpclust/inst/example
+
+module load R
 
 R --vanilla --slave -q -f dpclust_pipeline.R --args -r 1 -d ../../../dpclust_input/ -o ../../../output_dpclust -i ../../../dpclust_input/sample0.txt
 
@@ -253,7 +217,7 @@ data.frame(
 Fit is run through the conda environment previously created. 
 ```{bash,eval = FALSE}
 ## you don't have to do this if you use the docker
-source ~/miniforge3/etc/profile.d/conda.sh
+source /home/salvatore.milite/miniconda3/etc/profile.d/conda.sh
 
 conda activate pyclone-vi
 
@@ -264,9 +228,471 @@ pyclone-vi fit -i pyclone_input/sample0_input.tsv -o output_pyclone/example.h5 -
 pyclone-vi write-results-file -i output_pyclone/example.h5 -o output_pyclone/example.tsv
 ```
 
-# WeMe consensus clustering
+# Mclust + merging (gaussian + post hoc correction)
+
+The CCF calculation here is trivial (no need for Bayclone)
+```{r}
+
+ccf <- inp$VAF * 2
+
+```
+
+We then run mclust with the same parameters used in the Dentro paper and correct the result with `mergenormals`
+
+```{r}
+
+library(mclust)
+
+res_mclust <- Mclust(ccf, G = 1:7)
+
+summary(res_mclust)
+```
+
+```{r}
+library(fpc)
+
+dir.create("mclust_out")
+
+res_mclust_merged <- mergenormals(ccf,res_mclust, method = "ridge.uni")
+
+sm <-  summary(res_mclust_merged)
+
+data.frame(id = 1:length(sm$clusternumbers), n_ssm = sm$clustering %>%  table() %>%  as.numeric(), loc = sm$muarray) %>% readr::write_tsv("mclust_out/mclust_subclonal_structure.tsv")
+
+data.frame(clusters = sm$clustering) %>% readr::write_tsv("mclust_out/mclust_clusters.tsv")
+
+data.frame(id = 1:length(sm$clusternumbers), n_ssm = sm$clustering %>%  table() %>%  as.numeric(), loc = sm$muarray)
+```
+
+
+# CliP (Binomial)
+
+As the author propose a `bootstrap log-likelihood ratio test to select the penalizing parameter` but the code is not released in the official GitHub, we use BIC to select the best model as suggested two lines above.
+
+```{r}
+dir.create("clip_input", showWarnings = FALSE)
+
+data.frame(
+  chromosome_index = chr,
+  position = position,
+  alt_count	 = NV,
+  ref_count = DP - NV
+) %>%
+  readr::write_tsv(., "clip_input/sample.snv.txt")
+
+data.frame(
+  chromosome_index = 1,
+  start_position = 1,
+  end_position = max(inp$position) + 10000,
+  major_cn = 1,
+  minor_cn = 1,
+  total_cn = 2
+) %>%
+  readr::write_tsv(., "clip_input/sample.cna.txt")
+
+as.data.frame(purity) %>%
+  readr::write_tsv(., "clip_input/sample.purity.txt", col_names = FALSE)
+
+
+
+```
+
+We use the default lambdas as there is no indication in the paper
+
+```{bash}
+source /home/salvatore.milite/.bashrc
+
+conda activate clip
+
+module load R
+
+cd CliP
+
+python3 run_clip_main.py ../clip_input/sample.snv.txt ../clip_input/sample.cna.txt ../clip_input/sample.purity.txt
+
+```
+
+Implement BIC
+
+```{r}
+
+calculate_BIC <- function(df, inp){
+  library(matrixStats)
+  
+  pi <- df$num_SNV / sum(df$num_SNV)
+  locs <- pmin(df$cellular_prevalence, 1)
+  
+  npar <- length(locs) + length(pi) - 1
+  
+  lk <- sapply(locs, function(loc) dbinom(inp$NV,prob = loc/2, size = inp$DP, log = T)) + log(pi)
+  
+  lk <-  apply(lk, 1, logSumExp) %>%  sum()
+  
+  NLL2 <- -lk * 2
+  PEN <- log(nrow(df)) * npar
+  
+  return(NLL2 + PEN)
+  
+}
+
+
+collapse_clusters <- function(x, e = 0.01) {
+  
+  copy <- x
+  pi <- x$num_SNV / sum(x$num_SNV)
+  idx_to_collapse <- which(pi < e)
+  idx_to_retain <- which(pi >= e)
+  for (idx in idx_to_collapse){
+    nearest_cluster <- which.min(abs(x$cellular_prevalence[idx] - x$cellular_prevalence[idx_to_retain]))
+    copy$num_SNV[idx_to_retain[nearest_cluster]] <- copy$num_SNV[idx_to_retain[nearest_cluster]] + x$num_SNV[idx]
+  }
+  
+  return(copy[idx_to_retain,])
+  
+}
+```
+
+
+```{r}
+
+res_dir <- "./CliP/sample_id/final_result/"
+
+dir.create("clip_output")
+
+files <- list.files(res_dir, full.names = T) %>% grep(pattern = "subclonal_structure", value = T)
+
+dfs <- lapply(files, readr::read_tsv)
+
+dfs <- lapply(dfs, function(x) collapse_clusters(x, e = 0.01) )
+
+BICs <- lapply(dfs, function(df) calculate_BIC(df, inp))
+
+best_model_idx <- unlist(BICs) %>%  which.min
+
+(best_model_clip <- dfs[[best_model_idx]])
+
+best_model_clip %>% readr::write_tsv("clip_output/clip_subclonal_structure.tsv")
+
+best_lamda <- files[best_model_idx] %>%  stringi::stri_match(., regex = "lam.*") 
+
+best_ass <- readr::read_tsv(paste0(res_dir, "mutation_assignments_", best_lamda))
+
+best_ass %>% readr::write_tsv("clip_output/clip_clusters.tsv")
+
+```
+
+# CTPsingle
+
+```{r}
+
+dir.create("ctp_input", showWarnings = FALSE)
+
+data.frame(
+  Chromosome = chr,
+  Position = position,
+  Mutant = "A",
+  Reference = "T",
+  Mcount	 = NV,
+  Rcount = DP - NV,
+  Multiplier = 2,
+  Gender = "Female"
+) %>%
+  readr::write_tsv(., "ctp_input/sample.snv.txt")
+
+```
+
+```{bash}
+source /home/salvatore.milite/.bashrc
+
+module load R
+
+mkdir ctp_output
+
+CTPsingle/CTPsingle.R -f ./ctp_input/sample.snv.txt -o ./ctp_output/example_PCAWG_ctp -m ./CTPsingle/GammaAdjMatrices
+
+```
+
+# PhylogicNDT
+
+```{r}
+
+dir.create("phylogic_input", showWarnings = FALSE)
+
+data.frame(
+  Hugo_Symbol = "",
+  Chromosome = chr,
+  Start_position = position,
+  Reference_Allele = "A", # Made up, do not affect results
+  Tumor_Seq_Allele2 = "T",
+  t_alt_count	 = NV,
+  t_ref_count = DP - NV,
+  local_cn_a1	 = 1,
+  local_cn_a2	 = 1
+) %>%
+  readr::write_tsv(., "phylogic_input/sample0_input.txt")
+
+data.frame(
+  sample = "sample0",
+  maf_fn = "./phylogic_input/sample0_input.txt",
+  seg_fn = "",
+  cellularity = purity,
+  timepoint = 0
+) %>%
+  readr::write_tsv(., "phylogic_input/sample0.sif")
+
+```
+
+
+```{bash}
+source /home/salvatore.milite/miniconda3/etc/profile.d/conda.sh
+
+conda activate phylogic
+
+./PhylogicNDT/PhylogicNDT.py Cluster -i sample0  -sif phylogic_input/sample0.sif --maf_input_type calc_ccf
+
+```
+
+```{bash}
+
+mkdir phylogic_output 
+
+mv sample0*  phylogic_output
+
+
+```
+
+
+# PhyloWGS
+
+We undersample the dataset for efficiency reasons
+
+```{r}
+
+dir.create("wgs_input", showWarnings = FALSE)
+
+data.frame(
+  id = paste0("s", 0:(nrow(inp) - 1)),
+  gene = paste0("gene",  0:(nrow(inp) - 1)),
+  a = DP - NV,
+  d	 = DP,
+  mu_r = 0.999,
+  mu_v = 0.499
+) %>% filter(row_number() <= 1:500) %>% 
+  readr::write_tsv(., "wgs_input/ssm_data.txt")
+
+```
+
+
+```{bash}
+
+source /home/salvatore.milite/.bashrc
+
+conda activate phylowgs
+
+#no copy number events in our simple simulation
+rm -rf wgs_output
+
+touch wgs_input/cnv_data.txt
+
+mkdir wgs_output
+
+cd phylowgs
+
+python multievolve.py --num-chains 4 --ssms ../wgs_input/ssm_data.txt --cnvs ../wgs_input/cnv_data.txt --output-dir ../wgs_output 
+
+```
+
+```{bash}
+source /home/salvatore.milite/.bashrc
+
+conda activate phylowgs
+
+cd wgs_output
+
+python ../phylowgs/write_results.py example ./trees.zip example.summ.json.gz example.muts.json.gz example_data.mutass.zip
+
+```
+
+
+We apply the same filtering as in Dentro paper 
+
+```{r}
+
+library(R.utils)
+
+gunzip("wgs_output/example.summ.json.gz")
+
+
+```
+
+```{r}
+
+library(jsonlite)
+
+wgs_inp <- readr::read_tsv("wgs_input/ssm_data.txt")
+
+lks <- jsonlite::read_json("wgs_output/example.summ.json")
+
+summary_trees <- lapply(lks$trees, function(s) {
+  res <- s$populations %>% as.data.frame() %>% matrix(ncol = 3, byrow = T) %>%  as.data.frame()
+  res <- res[-1,-2]
+  names(res) <- c("n_ssm", "loc")
+  res$id <- paste0(1:nrow(res))
+  return(res %>% mutate(n_ssm = as.integer(n_ssm), loc = as.numeric(loc)))
+})
+                         
+
+# as a proxy of polyclonality we remove everything branching (considering it is irrealistic in our setting to have a branching population)
+
+is_branching <- sapply(lks$trees, function(t) t$branching_index > 0)
+
+summary_trees <- summary_trees[!is_branching]
+
+
+# remove superclonal cluster, this is a samplification of the original process
+
+has_supercluster <-  sapply(summary_trees, function(sm) sm$n_ssm[2] > sm$n_ssm[1] * 3)
+  
+summary_trees <- summary_trees[!has_supercluster]
+
+# MAP K
+
+nK <-  table(sapply(summary_trees, function(sm) nrow(sm))) 
+
+MAP_K <- names(nK)[which.max(nK)]
+
+which_K <- sapply(summary_trees, function(sm) nrow(sm) == MAP_K)
+
+summary_trees_K <- summary_trees[which_K]
+
+final_struct_wgs <- summary_trees_K %>%  do.call(rbind,.) %>%  group_by(id) %>%  summarize(n_ssm = mean(n_ssm) %>%  round(), loc = mean(loc))
+
+final_struct_wgs %>%  readr::write_tsv(., file = "wgs_output/final_struct_wgs.tsv")
+  
+```
+
+
+# Sclust
+
+```{r}
+
+NUC <- c("A", "C", "G", "T")
+
+comp <- function(n) {
+  if(n == "A") return("T")
+  if(n == "T") return("A")
+  if(n == "C") return("G")
+  if(n == "G") return("C")
+}
+
+comp <- Vectorize(comp)
+
+dir.create("sclust_input", showWarnings = FALSE)
+
+data.frame(Mut_ID = paste0("example_",paste0("chr",inp$chr), "_SNM:", inp$position)) %>% mutate(
+  
+  Chr = paste0("chr",inp$chr),
+  Position = inp$position,
+  Wt = sample(NUC, replace = F, size = nrow(inp)), # Made up, do not affect results
+  Mut = comp(Wt),
+  Af_obs = inp$VAF, 
+  Coverage	 = DP,
+  AF_exp = purity * 0.5,
+  Mut_Copies = 1,
+  Mut_Copies_Raw = rnorm(nrow(inp), mean = 1, sd = 0.05),
+  Is_Subclonal_CN = 0,
+  iCN = 2,
+  # good approximation to the real one
+  P_Is_Clonal = apply(inp, 1,  function(i) binom.test(i["NV"], n =  i["DP"], p = purity * 0.5)$p.value)
+  
+
+) %>%
+  readr::write_tsv(., "sclust_input/example_muts_expAF.txt")
+
+```
+
+
+```{bash}
+source /home/salvatore.milite/.bashrc
+
+
+cd sclust_input
+
+../Sclust/bin/Sclust cluster -i example
+```
+
+```{bash}
+source /home/salvatore.milite/.bashrc
+
+mkdir sclust_output
+
+mv sclust_input/example_mclusters.txt sclust_input/example_cluster_assignments.txt sclust_output
+
+```
+
+
+# SVclone
+
+```{r}
+
+dir.create("svclone_input", showWarnings = FALSE)
+
+data.frame(
+  chrom = inp$chr,
+  pos = inp$position,
+  gtype = "1,1,1.0",
+  var = NV,
+  ref = DP - NV
+) %>% 
+  readr::write_tsv(., "svclone_input/example_filtered_snvs.tsv")
+
+
+
+data.frame(
+  sample = "example",
+  purity = purity,
+  ploidy = 2
+) %>% 
+  readr::write_tsv(., "svclone_input/pp_file.txt")
+
+
+```
+
+
+```{bash}
+
+source /home/salvatore.milite/.bashrc
+
+module load R
+
+conda activate svclone
+
+svclone cluster -s example --snv svclone_input/example_filtered_snvs.tsv --purity_ploidy svclone_input/pp_file.txt --out svclone_output
+
+```
+
+# Subclonal structure formatting
 
 We  prepare the inputs; we retain only clusters with $>50$ mutations.
+
+```{r}
+
+merge_under <- function(x, e = 0.01) {
+  if(nrow(x) == 1) return(x)
+  copy <- x
+  pi <- x$n_ssms / sum(x$n_ssms)
+  idx_to_collapse <- which(pi < e)
+  idx_to_retain <- which(pi >= e)
+  for (idx in idx_to_collapse){
+    nearest_cluster <- which.min(abs(x$proportion[idx] - x$proportion[idx_to_retain]))
+    copy$n_ssms[idx_to_retain[nearest_cluster]] <- copy$n_ssms[idx_to_retain[nearest_cluster]] + x$n_ssms[idx]
+  }
+  
+  return(copy[idx_to_retain,])
+}
+
+```
+
 
 **Method 1: CCube.**
 
@@ -292,7 +718,7 @@ ccube_sc = results_ccube$ssm %>%
 readr::write_tsv(
   "example_simulated/method1/example_subclonal_structure.txt",
   x = ccube_sc %>%  
-    filter(n_ssms > 50) %>%  
+    merge_under()  %>%  
     arrange(-proportion) %>% 
     mutate(cluster = 1:length(cluster))
   )
@@ -302,6 +728,8 @@ readr::write_tsv(
 
 ```{r}
 dir.create("example_simulated/method2", showWarnings = F)
+
+cluster_composition_dpclust <- readr::read_tsv("output_dpclust/sample0_DPoutput_2000iters_1000burnin_seed123/sample0_2000iters_1000burnin_bestClusterInfo.txt", col_types = readr::cols())
 
 ## dpclust apparently returns the location in terms of total tumour cells so we multiply it by purity
 dpclust_sc <-  cluster_composition_dpclust %>%  
@@ -315,7 +743,7 @@ dpclust_sc <-  cluster_composition_dpclust %>%
 readr::write_tsv(
   "example_simulated/method2/example_subclonal_structure.txt", 
   x = dpclust_sc %>%  
-    filter(n_ssms > 50) %>%  
+    merge_under() %>%  
     arrange(-proportion) %>% 
     mutate(cluster = 1:length(cluster))
   )
@@ -339,7 +767,47 @@ pyclone_sc <- pyclone_out %>%
 readr::write_tsv(
   "example_simulated/method3/example_subclonal_structure.txt",
   x = pyclone_sc %>%  
-    filter(n_ssms > 50) %>%  
+    merge_under() %>%  
+    arrange(-proportion) %>% 
+    mutate(cluster = 1:length(cluster))
+)
+```
+
+**Method 4: Mclust**
+
+```{r}
+dir.create("example_simulated/method4", showWarnings = F)
+
+mclust_out <-
+  readr::read_tsv("mclust_out/mclust_subclonal_structure.tsv", col_types = cols())
+
+mclust_out <- mclust_out %>%  
+  rename(cluster = id, n_ssms = n_ssm, proportion = loc)
+
+readr::write_tsv(
+  "example_simulated/method4/example_subclonal_structure.txt",
+  x = mclust_out %>%  
+    merge_under %>%  
+    arrange(-proportion)
+
+)
+```
+
+**Method 5: CliP**
+
+```{r}
+dir.create("example_simulated/method5", showWarnings = F)
+
+clip_out <-
+  readr::read_tsv("clip_output/clip_subclonal_structure.tsv", col_types = cols())
+
+clip_out <- clip_out %>%  
+  rename(cluster = cluster_index, n_ssms = num_SNV, proportion = cellular_prevalence) 
+
+readr::write_tsv(
+  "example_simulated/method5/example_subclonal_structure.txt",
+  x = clip_out %>%  
+    merge_under() %>%  
     arrange(-proportion) %>% 
     mutate(cluster = 1:length(cluster))
 )
@@ -347,14 +815,133 @@ readr::write_tsv(
 
 
 
-From WeMe inputs we see that Pyclone-VI clusters the data in a single cluster, if we exclude an extremely small cluster on the left tail of the distribution. 
+**Method 6: CTPsingle**
+
+```{r}
+dir.create("example_simulated/method6", showWarnings = F)
+
+ctp_out <-
+  readr::read_tsv("ctp_output/example_PCAWG_ctp_cluster_assignments.txt", col_types = cols()) %>% 
+  group_by(mostLikely) %>%  summarize(n_ssms = n(), proportion = unique(averageFrequency) * purity)
+
+ctp_out <- ctp_out %>%  
+  rename(cluster = mostLikely)
+
+readr::write_tsv(
+  "example_simulated/method6/example_subclonal_structure.txt",
+  x = ctp_out %>%  
+    merge_under() %>%  
+    arrange(-proportion) %>% 
+    mutate(cluster = 1:length(cluster))
+)
+```
+
+**Method 7: PhylogicNDT**
+
+```{r}
+dir.create("example_simulated/method7", showWarnings = F)
+
+ndt_out <-
+  readr::read_tsv("phylogic_output/sample0.cluster_ccfs.txt", col_types = cols()) %>%  
+  select(Cluster_ID, postDP_ccf_mean)
+
+ndt_ass <- readr::read_tsv("phylogic_output/sample0.mut_ccfs.txt", col_types = cols()) %>%  group_by(Cluster_Assignment) %>%  summarize(n_ssms = n())
+
+ndt_ass$proportion <- ndt_out$postDP_ccf_mean * purity
+
+ndt_ass <- ndt_ass %>%  
+  rename(cluster = Cluster_Assignment) 
+
+readr::write_tsv(
+  "example_simulated/method7/example_subclonal_structure.txt",
+  x = ndt_ass %>%  
+    merge_under() %>%  
+    arrange(-proportion) %>% 
+    mutate(cluster = 1:length(cluster))
+)
+```
+
+
+**Method 8: PhyloWGS**
+
+```{r}
+dir.create("example_simulated/method8", showWarnings = F)
+
+wgs_out <-
+  readr::read_tsv("wgs_output/final_struct_wgs.tsv", col_types = cols()) 
+
+wgs_out <- wgs_out %>%  
+  rename(cluster = id, n_ssms = n_ssm, proportion = loc) 
+
+readr::write_tsv(
+  "example_simulated/method8/example_subclonal_structure.txt",
+  x = wgs_out %>%  
+    merge_under() %>%  
+    arrange(-proportion) %>% 
+    mutate(cluster = 1:length(cluster))
+)
+```
+
+
+**Method 9: Sclust**
+
+```{r}
+dir.create("example_simulated/method9", showWarnings = F)
+
+sclust_out <-
+  readr::read_tsv("sclust_output/example_mclusters.txt", col_types = cols()) 
+
+sclust_out <- sclust_out %>%  
+  rename(cluster = Cluster_ID, n_ssms = Mutations_In_Cluster, proportion = CCF_Cluster ) %>%  mutate(proportion = proportion * purity) %>%  select(-Cluster_Peak_Height) %>%  select(cluster, n_ssms, proportion)
+
+readr::write_tsv(
+  "example_simulated/method9/example_subclonal_structure.txt",
+  x = sclust_out %>%  
+    merge_under() %>%  
+    arrange(-proportion) %>% 
+    mutate(cluster = 1:length(cluster))
+)
+```
+
+
+**Method 10: SVclone**
+
+```{r}
+dir.create("example_simulated/method10", showWarnings = F)
+
+sv_out <-
+  readr::read_tsv("svclone_output/ccube_out/snvs/example_subclonal_structure.txt", col_types = cols()) 
+
+readr::write_tsv(
+  "example_simulated/method10/example_subclonal_structure.txt",
+  x = sv_out %>%  
+    merge_under() %>%  
+    arrange(-proportion) %>% 
+    mutate(cluster = 1:length(cluster))
+)
+```
+
+# Weme Consensus
+
+From WeMe inputs we see that Pyclone-VI clusters the data in a single cluster, if we exclude an extremely small cluster on the left tail of the distribution. Same for Ccube and mclust.
 ```{r}
 read.table(file = "./example_simulated//method3/example_subclonal_structure.txt", header = T)
-```
-However, the  other algorithms push to fragment the clonal cluster into $>1$ clusters, leading to an error with respect to the starting generative model (monoclonal).
-```{r}
 read.table(file = "./example_simulated/method1/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method4/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method10/example_subclonal_structure.txt", header = T)
+
+```
+
+However, some of the other algorithms push to fragment the clonal cluster into $>1$ clusters, leading to an error with respect to the starting generative model (monoclonal).
+```{r}
 read.table(file = "./example_simulated/method2/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method5/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method6/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method7/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method8/example_subclonal_structure.txt", header = T)
+read.table(file = "./example_simulated/method9/example_subclonal_structure.txt", header = T)
+
+
 ```
 
 We compute the consensus.
@@ -383,15 +970,51 @@ load("results_ccube.rda", verbose = T)
 inp$ccube_clusters <- results_ccube$res$label
 
 # load dpclust
-dpclust_res <-  readr::read_tsv("output_dpclust/sample0_DPoutput_2000iters_1000burnin_seed123/sample0_2000iters_1000burnin_bestConsensusAssignments.bed")
+dpclust_res <-  readr::read_tsv("output_dpclust/sample0_DPoutput_2000iters_1000burnin_seed123/sample0_2000iters_1000burnin_bestConsensusAssignments.bed", col_types = readr::cols())
 inp$dpclust_clusters <- dpclust_res$cluster
 
 #load pyclone-vi fit
-pyclone_res <- readr::read_tsv("output_pyclone/example.tsv")
+pyclone_res <- readr::read_tsv("output_pyclone/example.tsv", col_types = readr::cols())
+pyclone_res <- pyclone_res[gtools::mixedorder(pyclone_res$mutation_id),]
 inp$pyclone_res <- pyclone_res$cluster_id + 1
 
+#load mclust
+mclust_clusters <- readr::read_tsv("mclust_out/mclust_clusters.tsv", col_types = readr::cols())
+inp$mclust_res <- mclust_clusters$clusters
+
+#load CliP
+clip_res <- readr::read_tsv("clip_output/clip_clusters.tsv", col_types = readr::cols())
+inp$clip_res <- clip_res$cluster_index + 1
+
+#load CTPsingle
+ctp_res <- readr::read_tsv("ctp_output/example_PCAWG_ctp_cluster_assignments.txt", col_types = readr::cols())
+inp$ctp_res <- ctp_res$mostLikely
+
+#load PhylogicNDT
+phylogic_res <- readr::read_tsv("phylogic_output/sample0.mut_ccfs.txt", col_types = readr::cols()) %>%  arrange(Start_position)
+inp$phylogic_res <- phylogic_res$Cluster_Assignment
+
+#load PhyloWGS (simplified binomial assignment)
+wgs_res <- readr::read_tsv("wgs_output/final_struct_wgs.tsv", col_types = readr::cols())
+
+
+mat_lk <- apply(inp,1,  function(x) apply(wgs_res, 1, function(par) dbinom(x = x["NV"],prob = par["loc"]/2,size = x["DP"], log = T) +   log(par["n_ssm"] / nrow(inp)) )) %>%  t()
+
+tot_lk <- apply(mat_lk, 1,function(lk) logSumExp(lk))
+
+ps <- exp(mat_lk - tot_lk)
+
+inp$wgs_res <- apply(ps, 1, which.max)
+
+#load Sclust
+sclust_res <- readr::read_tsv("sclust_output/example_cluster_assignments.txt", col_types = readr::cols())
+inp$sclust_res <- sclust_res$Cluster_Id
+
+#load SVclone
+svclone_res <- readr::read_tsv("svclone_output/ccube_out/snvs/example_assignment_probability_table.txt", col_types = readr::cols())
+inp$svclone_res <- svclone_res %>% select(starts_with("cluster")) %>%  apply(., 1 , which.max)
 #load consensus
-consensus_structure <- readr::read_tsv("example_simulated/example_subclonal_structure.txt")
+consensus_structure <- readr::read_tsv("example_simulated/example_subclonal_structure.txt", col_types = readr::cols())
 ```
 
 We can assign mutations to the WeMw output assuming that they come from a beta-binomial mixture model.
@@ -400,32 +1023,16 @@ We can assign mutations to the WeMw output assuming that they come from a beta-b
 RHO = 0.01
 
 # Posterior clustering assignments
-lk_c1 <-
-  VGAM::dbetabinom(
-    x = inp$NV,
-    size = inp$DP ,
-    prob = consensus_structure$proportion[1] / 2,
-    log = T,
-    rho = RHO
-  ) + log(consensus_structure$n_ssms[1] / 100) 
+mat_lk <- apply(inp,1,  function(x) apply(consensus_structure, 1, function(par) dbinom(x = x["NV"],prob = par["proportion"]/2,size = x["DP"], log = T) +   log(par["n_ssms"] / nrow(inp)) )) %>%  t()
 
-lk_c2 <-
-  VGAM::dbetabinom(
-    x = inp$NV,
-    size = inp$DP ,
-    prob = consensus_structure$proportion[2] / 2,
-    log = T,
-    rho = RHO
-  ) + log(consensus_structure$n_ssms[2] / 100)
+tot_lk <- apply(mat_lk, 1,function(lk) logSumExp(lk))
 
+ps <- exp(mat_lk - tot_lk)
 
-# Hard clusterings
-inp$consensus_cluster <- apply(
-  cbind(lk_c1, lk_c2), 
-  MARGIN = 1, 
-  FUN = function(x) which.max(x)
-  )
+inp$consensus_cluster <- apply(ps, 1, which.max)
+
 ```
+
 
 Example plots with all algorithms at once.
 ```{r}
@@ -435,22 +1042,41 @@ df_b <- inp %>%
     ccube_clusters, 
     dpclust_clusters, 
     pyclone_res, 
+    mclust_res,
+    clip_res,
+    ctp_res,
+    phylogic_res,
+    wgs_res,
+    sclust_res,
+    svclone_res,
     consensus_cluster) %>%  
   rename(
     weme = consensus_cluster, 
     pyclone = pyclone_res, 
     ccube = ccube_clusters, 
-    dpclust = dpclust_clusters) %>% 
+    dpclust = dpclust_clusters,
+    mclust = mclust_res,
+    clip = clip_res,
+    ctpsingle = ctp_res,
+    phylogicndt = phylogic_res,
+    phylowgs = wgs_res,
+    sclust = sclust_res,
+    svclone = svclone_res
+    ) %>% 
   reshape2::melt(id.vars = "CCF")
 
 # Plot
-ggplot(df_b, 
+pfin <- ggplot(df_b, 
        aes(x = CCF, fill = value %>% paste())
        ) + 
   geom_histogram(binwidth = 0.02) + 
   scale_fill_brewer("Cluster", palette = "Set2") + 
-  facet_wrap(.~variable, nrow = 1) + 
+  facet_wrap(.~variable, nrow = 3) + 
   theme_bw() + ggtitle("Clustering assignments simulation")
+
+pfin %>%  ggsave("all_consensus_plot.png", plot = ., units = "px", width = 1800, height = 1800)
+
+pfin
 ```
 
 ![WeMe consensus](example_simulated/example.png)

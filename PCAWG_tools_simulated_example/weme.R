@@ -130,8 +130,9 @@ get_data <- function(sid){
                 fits[j] = compute_fit(tm[,j],mphi)
             }
             to_r = which(fits==min(fits))[1]
+            print(tm[,to_r])
             tm = tm[,-to_r]
-
+            print(ms[[to_r]])
             alldf = alldf[alldf$method != ms[[to_r]],]
             ncs = ncs[-to_r]
             mphi = apply(tm,1,median)
