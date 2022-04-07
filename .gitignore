@@ -1,5 +1,14 @@
-./processed_data/maf_subclone_ccf.csv.gz
-./processed_data/cluster_probs_41cases.csv.gz
+processed_data/
+PCAWG_tools_simulated_example/sim_*/
+PCAWG_tools_simulated_example/CliP/
+PCAWG_tools_simulated_example/CTPsingle/
+PCAWG_tools_simulated_example/pyclone-vi/
+PCAWG_tools_simulated_example/Sclust/
+PCAWG_tools_simulated_example/dpclust/
+PCAWG_tools_simulated_example/Sclust/
+PCAWG_tools_simulated_example/phylowgs/
+PCAWG_tools_simulated_example/PhylogicNDT/
+
 .Rproj.user
 .Rhistory
 .RData
