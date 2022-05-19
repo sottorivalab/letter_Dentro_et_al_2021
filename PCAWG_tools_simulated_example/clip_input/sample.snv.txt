@@ -1,5 +1,6 @@
 chromosome_index	position	alt_count	ref_count
 <<<<<<< HEAD
+<<<<<<< HEAD
 1	11170462	25	11
 1	74596020	14	33
 1	23003297	17	30
@@ -10001,6 +10002,8 @@ chromosome_index	position	alt_count	ref_count
 1	45298585	19	27
 1	89475095	21	28
 =======
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
 1	117027	7	55
 1	153556	3	39
 1	371109	18	29
@@ -12984,4 +12987,7 @@ chromosome_index	position	alt_count	ref_count
 1	99914332	16	27
 1	99972627	18	28
 1	99972804	30	22
+<<<<<<< HEAD
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d

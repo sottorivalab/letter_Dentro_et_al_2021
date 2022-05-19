@@ -1,8 +1,13 @@
 Cluster_ID	CCF_Cluster	Cluster_Peak_Height	Mutations_In_Cluster
 <<<<<<< HEAD
+<<<<<<< HEAD
 0	0.98694	2.70336	6717
 1	0.780735	2.00208	3283
 =======
 0	0.85824	6.15535	2678
 1	0.130305	0.929938	299
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+0	0.85824	6.15535	2678
+1	0.130305	0.929938	299
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d

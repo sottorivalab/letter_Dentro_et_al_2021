@@ -1,5 +1,6 @@
 mutation_id	sample_id	cluster_id	cellular_prevalence	cellular_prevalence_std	cluster_assignment_prob
 <<<<<<< HEAD
+<<<<<<< HEAD
 S_1019	example	0	0.6602	0.0068	0.5311
 S_1020	example	0	0.6602	0.0068	0.6205
 S_1095	example	0	0.6602	0.0068	0.5136
@@ -10001,6 +10002,8 @@ S_9997	example	1	1.0000	0.0000	0.9980
 S_9998	example	1	1.0000	0.0000	1.0000
 S_9999	example	1	1.0000	0.0000	0.9867
 =======
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
 S_1000	example	0	1.0000	0.0001	0.6521
 S_1001	example	0	1.0000	0.0001	0.6346
 S_1002	example	0	1.0000	0.0001	0.6521
@@ -12984,4 +12987,7 @@ S_93	example	2	0.1740	0.0081	0.9996
 S_94	example	2	0.1740	0.0081	0.9879
 S_95	example	2	0.1740	0.0081	0.9978
 S_97	example	2	0.1740	0.0081	0.8503
+<<<<<<< HEAD
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d

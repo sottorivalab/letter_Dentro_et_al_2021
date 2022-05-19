@@ -1,5 +1,6 @@
 mutation_id	sample_id	alt_counts	ref_counts	normal_cn	major_cn	minor_cn	tumour_content
 <<<<<<< HEAD
+<<<<<<< HEAD
 S_1	example	25	11	2	1	1	0.8
 S_2	example	14	33	2	1	1	0.8
 S_3	example	17	30	2	1	1	0.8
@@ -10001,6 +10002,8 @@ S_9998	example	34	19	2	1	1	0.8
 S_9999	example	19	27	2	1	1	0.8
 S_10000	example	21	28	2	1	1	0.8
 =======
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
 S_1	example	7	55	2	1	1	0.85
 S_2	example	3	39	2	1	1	0.85
 S_3	example	18	29	2	1	1	0.85
@@ -12984,4 +12987,7 @@ S_2980	example	21	25	2	1	1	0.85
 S_2981	example	16	27	2	1	1	0.85
 S_2982	example	18	28	2	1	1	0.85
 S_2983	example	30	22	2	1	1	0.85
+<<<<<<< HEAD
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d

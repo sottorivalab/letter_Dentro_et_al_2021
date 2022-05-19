@@ -1,6 +1,10 @@
 sample	purity	ploidy
 <<<<<<< HEAD
+<<<<<<< HEAD
 example	0.8	2
 =======
 example	0.5	2
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+example	0.5	2
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d

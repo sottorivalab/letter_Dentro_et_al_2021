@@ -1,5 +1,6 @@
 Chromosome	Position	Mutant	Reference	mostLikely	averageFrequency	totalCN	mutationCN
 <<<<<<< HEAD
+<<<<<<< HEAD
 1	11170462	A	TRUE	0	0	2	1
 1	74596020	A	TRUE	3	0.559746734894682	2	1
 1	23003297	A	TRUE	1	0.772101794451349	2	1
@@ -10001,6 +10002,8 @@ Chromosome	Position	Mutant	Reference	mostLikely	averageFrequency	totalCN	mutatio
 1	45298585	A	TRUE	2	1	2	1
 1	89475095	A	TRUE	1	0.772101794451349	2	1
 =======
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
 1	117027	A	TRUE	2	0.163485874525744	2	1
 1	153556	A	TRUE	2	0.163485874525744	2	1
 1	371109	A	TRUE	3	1	2	1
@@ -12984,4 +12987,7 @@ Chromosome	Position	Mutant	Reference	mostLikely	averageFrequency	totalCN	mutatio
 1	99914332	A	TRUE	1	0.779443234162084	2	1
 1	99972627	A	TRUE	1	0.779443234162084	2	1
 1	99972804	A	TRUE	3	1	2	1
+<<<<<<< HEAD
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d

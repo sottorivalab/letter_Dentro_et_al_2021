@@ -1,5 +1,6 @@
 chr	end	Reference_Allele	Tumor_Seq_Allele2	mut.count	WT.count	subclonal.CN	mutation.copy.number	subclonal.fraction	no.chrs.bearing.mut
 <<<<<<< HEAD
+<<<<<<< HEAD
 1	11170462	A	T	25	11	2	1	1	1
 1	74596020	A	T	14	33	2	1	1	1
 1	23003297	A	T	17	30	2	1	1	1
@@ -10001,6 +10002,8 @@ chr	end	Reference_Allele	Tumor_Seq_Allele2	mut.count	WT.count	subclonal.CN	mutat
 1	45298585	A	T	19	27	2	1	1	1
 1	89475095	A	T	21	28	2	1	1	1
 =======
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
 1	117027	A	T	7	55	2	1	1	1
 1	153556	A	T	3	39	2	1	1	1
 1	371109	A	T	18	29	2	1	1	1
@@ -12984,4 +12987,7 @@ chr	end	Reference_Allele	Tumor_Seq_Allele2	mut.count	WT.count	subclonal.CN	mutat
 1	99914332	A	T	16	27	2	1	1	1
 1	99972627	A	T	18	28	2	1	1	1
 1	99972804	A	T	30	22	2	1	1	1
+<<<<<<< HEAD
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d

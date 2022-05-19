@@ -131,9 +131,13 @@ get_data <- function(sid){
             }
             to_r = which(fits==min(fits))[1]
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             print(tm[,to_r])
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+            print(tm[,to_r])
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
             tm = tm[,-to_r]
             print(ms[[to_r]])
             alldf = alldf[alldf$method != ms[[to_r]],]

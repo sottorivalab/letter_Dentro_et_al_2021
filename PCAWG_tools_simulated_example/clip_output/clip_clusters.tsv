@@ -1,5 +1,6 @@
 chromosome_index	position	cluster_index
 <<<<<<< HEAD
+<<<<<<< HEAD
 1	11170462	0
 1	74596020	0
 1	23003297	0
@@ -9997,6 +9998,8 @@ chromosome_index	position	cluster_index
 1	45298585	0
 1	89475095	0
 =======
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
 1	117027	3
 1	153556	3
 1	371109	2
@@ -12979,4 +12982,7 @@ chromosome_index	position	cluster_index
 1	99914332	2
 1	99972627	2
 1	99972804	3
+<<<<<<< HEAD
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d

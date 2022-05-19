@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 chr	start	end	prob.cluster.1	prob.cluster.2	prob.cluster.3	most.likely.cluster
 1	11170461	11170462	0.956	0.043	0.001	1
 1	74596019	74596020	0.055	0.154	0.766	3
@@ -10001,6 +10002,8 @@ chr	start	end	prob.cluster.1	prob.cluster.2	prob.cluster.3	most.likely.cluster
 1	45298584	45298585	0.297	0.361	0.342	2
 1	89475094	89475095	0.395	0.375	0.229	1
 =======
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
 chr	start	end	prob.cluster.1	prob.cluster.2	prob.cluster.3	prob.cluster.4	most.likely.cluster
 1	117026	117027	0	0	0.00301507537688442	0.996984924623116	4
 1	153555	153556	0	0	0.002	0.998	4
@@ -12985,4 +12988,7 @@ chr	start	end	prob.cluster.1	prob.cluster.2	prob.cluster.3	prob.cluster.4	most.l
 1	99914331	99914332	0.083	0.684	0.233	0	2
 1	99972626	99972627	0.114	0.734	0.152	0	2
 1	99972803	99972804	0.611	0.382	0.007	0	1
+<<<<<<< HEAD
 >>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
+=======
+>>>>>>> b56aa614b7bc9492389f4b320805508d167fc58d
