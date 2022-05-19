@@ -13,7 +13,6 @@ output:
 
 ## Overdispersion from germline SNPs
 
-<<<<<<< HEAD
 ### Retrieving germline SNPs from tomour BAMs
 
 The process is ideally:
@@ -116,11 +115,6 @@ write.table(diploid_snvs,file=output_diploid_snps,col.names=F,row.names=F,quote=
 the germline analysis the function `generate_report_overdispersion` provides a complete report for overdispersion, with the 6 plots included in the Supplementary Data and binomial and beta-binomial MLE paramters. The input requires 5 objects that can be obtained from the PCWAG data release:
 
 * *snps*: germinal SNPs, they can be obtained from the normal and tumour BAMS (restricted access), the input table should have the 5 following field "chr", "ref", "alt", "AD", "DP". Where "ref" is the reference allele, “alt“ the alternative and "DP" and "AD" can be obtained from the VCF. More information above.
-=======
-the germline analysis the function `generate_report_overdispersion` provides a complete report for overdispersion, with the 6 plots included in the Supplementary Data and binomial and beta-binomial MLE paramters. The input requires 5 objects that can be obtained from the PCWAG data release:
-
-* *snps*: germinal SNPs, they can be obtained from the normal and tumour BAMS (restricted access), the input table should have the 5 following field "chr", "ref", "alt", "AD", "DP". Where "ref" is the reference allele, “alt“ the alternative and "DP" and "AD" can be obtained from the VCF.
->>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
 *  *cna*: [PCWAG consensus CN files](https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170119.somatic.cna.annotated.tar.gz)
 *  *meta*: a [table](https://dcc.icgc.org/api/v1/download?fn=/PCAWG/consensus_cnv/consensus.20170217.purity.ploidy.txt.gz) with at least a coloumn named `purity` with the actual purity values for the sample 
 *  *snvs*: maf_subclone_ccf.csv can be obtained as described in the `Process PCAWG data` article
