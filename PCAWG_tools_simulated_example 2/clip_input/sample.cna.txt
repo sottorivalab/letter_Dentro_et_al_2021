@@ -1,0 +1,2 @@
+chromosome_index	start_position	end_position	major_cn	minor_cn	total_cn
+1	1	99980154	1	1	2

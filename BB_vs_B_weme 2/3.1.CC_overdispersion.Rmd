@@ -1,0 +1,398 @@
+---
+title: "Consensus clustering with overdispersion"
+output: 
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This notebook performs PCAWG consensus clustering using [WeMe](https://github.com/morrislab/weme), in the presence of overdispersed WGS data for a tumour with $K=1$ populations (monoclonal tumour). 
+
+The test aims at showing that consensus clustering is substantially affected by the number of methods adopted, and their statistical performance. In particular, we compare Binomial methods that are known to overfit with overdispersed data (i.e., that determine more than a single cluster, $K_B>1$), against Beta-Binomial methods that account for overdispersion and fit properly the number of clusters in the data (i.e., determine $K_{BB}=1$). 
+
+Results show that WeMe determines a number of clusters $K_{WeMe}$ which is determined by the result more frequently returned by the adopted type of method (i.e., $n_B$ overdispersed methods versus $n_{BB}$  non-overdispersed methods). 
+
+We conclude that:
+
+* if WGS counts data are overdispersed and Binomial methods overestimate $K$ ($K_B>K$), 
+* whenever more Binomial than Beta-Binomial methods are adopted ($n_B>n_{BB}$),
+
+then WeMe is biased towards overfitting since it determines $K_{WeMe}=2>K$, reporting  polyclonal tumours instead of monoclonal overdispersed clusters.
+
+# Simulated VAF spectrum
+
+We discuss a single-case simulation, and then perform a larger scale analysis.
+
+**The workingdir of this vignette is letter_Dentro_et_al_2021/BB_vs_B_weme**
+
+
+```{r, message=FALSE, warning=FALSE}
+set.seed(1234)
+
+# Used packages
+require(dplyr)
+require(ggplot2)
+require(cowplot)
+
+```
+
+We set parameters for a tumour WGS calls set with:
+
+* $1000$ mutations in diploid tumor segments, 
+
+* $100\%$ tumour purity,
+
+* Poisson-distributed coverage with mean depth $45$ (approx. median PCAWG coverage).
+
+```{r, eval=TRUE}
+# Overdispersion for a Beta-Binomial model, fixed parameter.
+overdispersion = 0.015
+
+# Number of considered mutations
+N = 5000
+COV = 45
+
+# Coverage, Poisson distributed with mean 45
+coverage = rpois(N, COV)
+```
+
+The coverage distribution is 
+```{r, fig.width=4, fig.height=4}
+ggplot(coverage %>% as_tibble) + geom_histogram(aes(value), bins = 100)
+```
+
+We sample data from a Beta-Binomial model, where read counts overdispersion is given by the `overdispersion` variable. Since we simulate diploid genome areas for a pure tumour, this means setting the Beta-Binomialmodel success probability to 50%, which corresponds to Cancer Cell Fraction $1$, as expected for clonal mutations.
+ 
+Note that we remove the confounder effect of neutral tail mutations. 
+```{r, fig.width=4, fig.height=4}
+# Read counts with the variant allele, Beta-Binomial
+read_counts_variant_alleles = VGAM::rbetabinom(
+  n = N, 
+  size = coverage, 
+  prob = 0.5, 
+  rho = overdispersion
+  )
+
+# Tibble for simulated data
+simulated_data = data.frame(
+  DP = coverage,
+  NV = read_counts_variant_alleles
+) %>% 
+  mutate(VAF = NV/DP) %>% 
+  as_tibble()
+
+print(simulated_data)
+
+# Plot VAF
+ggplot(simulated_data) + geom_histogram(aes(VAF), binwidth = 0.01)
+```
+
+# Read counts clustering
+
+## Binomial model without overdispersion
+
+We know perform Binomial clustering with 2 mixture components (fixed parameters), to replicate the split expected to be caused by overdispersion.
+In order to do that we implemented a simple EM algorithm (a full description is available in the paper).
+
+```{r}
+fit_Binomial = function(x, seed = 3, return_pars = FALSE)
+{
+  
+  library(matrixStats)
+  library(VGAM)
+  
+  set.seed(seed)
+  
+  input <- x %>% dplyr::select(NV, DP) %>% as.data.frame()
+  
+  LL <- function(prob) {
+    R = dbinom(x = input$NV, prob = prob, size = input$DP)
+    
+    -sum(log(R))
+  }
+  
+  ### Here we learn the parameters of the Binomila numerically by minimizing the NLL
+  b1 <- stats4::mle(LL, start = list(prob = 0.5), lower = 0.001, upper = 0.999)
+  
+  p_b1 <-  b1@coef[1]
+  
+  ### sample cluster weights using a random Uniform
+  phi1 = runif(1)
+  phi = c(phi1, 1 - phi1)
+  
+  ### We do the same fot the cluster location
+  p = runif(2)
+  
+  ### Tolerance for convergence
+  E_tol = 1e-2
+  #math  x
+  S = x$NV
+  #math  d
+  N = x$DP
+  
+  ### total likelihood calculation p(x | p_1) * phi_1 + p(x | p_2) * phi_2
+  lk1 = dbinom(S, p[1], size = N, log = T) + log(phi[1])  
+  lk2 = dbinom(S, p[2], size = N, log = T) + log(phi[2])
+  lk = apply(cbind(lk1, lk2), 1,  logSumExp, simplify = TRUE)
+  
+  ### We set some initial parameters to enter the while loop
+  tol = Inf
+  idx = 1
+  
+  ### We do at least 2 steps
+  while(tol > E_tol | idx < 3) {
+    
+
+    ### E step ###
+    # z_1 = p(x | p_1) * phi_1 / p(x)
+    z = lk1 - lk
+    z = exp(z)
+    
+    ### M step ###
+    
+    # phi_1 = 1/N  sum(z_1)
+    phi1 = sum(z) / length(N)  
+    # phi_2 = 1 - Phi_1
+    phi = c(phi1, 1 - phi1)
+    
+    # p_1 = sum(z_1 * x) / sum(z_1 * d)
+    p1 = sum(S * z) / sum(N * z)
+    p2 = sum(S * (1 - z)) / sum(N * (1 - z))
+    
+    p = c(p1, p2)
+    
+    # components likelihood
+    lk1 = dbinom(S, p[1], size = N, log = T) + log(phi[1])  
+    lk2 = dbinom(S, p[2], size = N, log = T) + log(phi[2]) 
+    
+    lk_old = lk
+    
+    lk = apply(cbind(lk1, lk2), 1,  logSumExp, simplify = TRUE)
+    
+    
+    ### CONVERGENCE ###
+    tol = abs(sum(lk_old) - sum(lk))
+    
+    idx = idx + 1
+  }
+  
+  
+  ### BIC ###
+  BIC_b1 <- log(length(N)) + 2 * b1@min 
+  BIC_b2 <- 3 * log(length(N)) - 2 * sum(lk)
+  
+  # return fit or weme input #
+  if(return_pars) {
+    if(BIC_b2 < BIC_b1)
+      return(list(p = p, phi = phi, Z = z))
+    else
+      return(list(p = p_b1, phi = 1, Z = rep(1, length(N) )))
+  }
+  
+  if(BIC_b2 < BIC_b1){
+    tribble(
+      ~"cluster", ~"n_ssms", ~"proportion",
+      1,   round(length(N) * phi[1]) , p[1],
+      2,   round(length(N) * phi[2]), p[2]
+    )
+  } else {
+    tribble(
+      ~"cluster", ~"n_ssms", ~"proportion",
+      1,   length(N), p_b1,
+    )
+  }
+
+}
+```
+
+
+```{r eval=TRUE}
+# Fit mixture
+
+bfit <- fit_Binomial(simulated_data,  return_pars = TRUE) 
+```
+
+This are the clustering assignments and fit density for the read counts with the variant.
+
+```{r, fig.width=8, fig.height=4}
+# Latent variables hard clustering
+pl_1 = ggplot(simulated_data %>%  mutate(clust = if_else(bfit$Z > 0.5, "1", "2")), aes(x = VAF, fill = clust)) + geom_histogram(binwidth = 0.02) +
+  theme_bw() + scale_fill_brewer("Cluster",palette = "Set1")
+
+# Density per component
+
+LINSPACE <-  seq(0,45,by = 1)
+
+density_1 <- data.frame(x = LINSPACE,y = dbinom(LINSPACE, prob = bfit$p[1], size = COV) * bfit$phi[1], clust = "1")
+density_2 <- data.frame(x = LINSPACE, y = dbinom(LINSPACE, prob = bfit$p[2], size = COV) * bfit$phi[2], clust = "2")
+
+density_plot <- rbind(density_1, density_2)
+
+pl_2 = ggplot(density_plot, aes(x = x,y = y,  color = clust)) + geom_line() +
+  theme_bw() + scale_color_brewer("Cluster",palette = "Set1")
+
+plot_grid(pl_1, pl_2, ncol = 2, nrow = 1)
+```
+
+## Beta-Binomial model with overdispersion
+
+We perform the analogous for a Beta-Binomial model with overdispersion, fixing a single clustering component. De fact we are obtaining the maximum likelihood estimate for the overdispersion parameter $\rho$.
+
+```{r}
+fit_BetaBinomial = function(df, seed = 3, return_pars = FALSE)
+{
+  
+  set.seed(seed)
+  library(VGAM)
+  input <- df %>% dplyr::select(NV, DP) %>% as.data.frame()
+  
+  LL <- function(a, b) {
+         R = dbetabinom.ab(x = input$NV, shape1 = a, shape2 = b, size = input$DP, log = T)
+         
+           -sum(R)
+     }
+  # fit beta binomial paramters using numerical optimization
+  # a,b parametrization is more stable under numerical optimization
+  bb <- stats4::mle(LL, start = c(50, 50), lower = c(0,0), upper = c(Inf, Inf))
+  
+  if(return_pars) {
+    return(list(p = bb@coef[1]  / sum(bb@coef[1] + bb@coef[2]), rho = 1 / ( 1 + bb@coef[1] + bb@coef[2]) ))
+  }
+  
+  tribble(
+    ~"cluster", ~"n_ssms", ~"proportion",
+    1,   length(input$NV) , bb@coef[1]  / sum(bb@coef[1] + bb@coef[2]) ,
+  ) 
+}
+```
+
+
+```{r eval = TRUE}
+# Beta-Binomial clustering with 1 mixture components
+bbfit = fit_BetaBinomial(simulated_data, return_pars = TRUE)
+```
+
+We perform the same plot for 
+```{r, fig.width=8, fig.height=4}
+# Latent variables hard clustering
+pl_1 = ggplot(simulated_data %>%  mutate(clust = "1"), aes(x = VAF, fill = clust)) + geom_histogram(binwidth = 0.02) +
+  theme_bw() + scale_fill_brewer("Cluster",palette = "Set1")
+
+# Density per component
+
+LINSPACE <-  seq(0,45,by = 1)
+
+density_1 <- data.frame(x = LINSPACE,y = VGAM::dbetabinom(LINSPACE, prob = bbfit$p, size = COV, rho = bbfit$rho), clust = "1")
+
+pl_2 = ggplot(density_1, aes(x = x,y = y,  color = clust)) + geom_line() +
+  theme_bw() + scale_color_brewer("Cluster",palette = "Set1")
+
+plot_grid(pl_1, pl_2, ncol = 2, nrow = 1)
+```
+
+We dump required data information in the PCAWG-11 format for WeMe. The format in some [example WeMe](https://github.com/morrislab/weme/blob/master/weme_demo/method4/sim0nqeot_subclonal_structure.txt) data is as follows.
+```
+cluster	n_ssms	proportion
+1	1908	0.91203
+2	3256	0.153434024446
+```
+
+We interpret `proportion` as the Cellular Proportion (CP) obtained by the VAF adjusted for allele-specific CNAs. This is like the CCF, but without the adjustment for tumour purity. 
+
+We note that since this is 100% pure tumour, CCF and CP are exactly the same value. Since the tumour is also diploid, the CCF is twice the simulated VAF.
+
+Binomial results are
+```{r}
+# PCAWG-11 format
+weme_binomial = tribble(
+  ~"cluster", ~"n_ssms", ~"proportion",
+  1,   round(bfit$phi[1] * N), bfit$p[1],
+  2,   round(bfit$phi[2] * N), bfit$p[2]
+) 
+
+weme_betabinomial = tribble(
+  ~"cluster", ~"n_ssms", ~"proportion",
+  1,   N, bbfit$p,
+)
+
+# Output files
+dir.create("./method1")
+dir.create("./method2")
+
+weme_binomial %>% readr::write_tsv("./method1/test_subclonal_structure.txt")
+weme_betabinomial %>% readr::write_tsv("./method2/test_subclonal_structure.txt")
+```
+
+# WeMe consensus clustering
+
+We evaluate WeMe after inclusion of a simple modification that outputs to disk the output dataframe passed to `ggplot2` by WeMe. The output is saved to file `results.rda`.
+
+This allows us to display the WeMe outputs and their numbers, on top of the default WeMe output which is a PNG figure.
+
+```{r, warning=FALSE}
+# Source WeMe
+source("weme.R")
+
+# Run WeMe
+sids = find_sids()
+sids %>% print()
+
+test = genconsensus(sids, rounddown = FALSE)
+```
+
+The output numbers by WeMe are
+```{r}
+load("./results.rda")
+
+result  %>% distinct(phi, method)
+```
+
+# PCAWG approach
+
+For single-nucleotide variants clustering, PCAWG adopted several methods based on different types of Dirichlet mixtures:
+
+* `CliP`, `Ccube`, `DPClust`, `PhylogicNDT` and ``PhyloWGS` which use Binomial mixtures;
+* `CTPSingle` and `PyClone` which use Beta-Binomial mixtures
+
+Other methods are `ScClust`, which uses splines, or `BayClone-C`, which uses Gaussian mixtures; those are not tested here.
+
+![Statistical characteristics of the methods used in PCAWG.](pc_meth.png)
+
+Therefore there are $n_B=5$ Binomial methods, and $n_{BB}=2$ Beta-Binomial methods. Generalising the test discussed in the previous section we generated VAF data with
+
+* number of mutations uniformly distributed in $[500, 1500$];
+* coverage uniformly distributed in $[35, 55$];
+* overdispersion uniformly sampled in the interval $[0.001, 0.0183], the right interval correspond to the 85% quantile of a gamma distribution fitted to the observed overdispersion in germline SNPs in 41 tumours, as described in the letter. We choose this value to filter possible outliers on the right tail.
+
+
+
+In the test we simulated a calling process that adopted $n_B=n_{BB}=1, \ldots,7$ Binomial and Beta-Binomial methods; for every configuration we repeated $30$ simulations per value of $n_B$ and $n_{BB}$. Compared to the single-test shown above, here we let solutions with $K_B=1$ and $K_B=2$ compete for every Binomial model. This means that the test factor the uncertainty in the model selection procedure - i.e., whether the Binomial model fits a single cluster or two clusters to data. In practice, this means that even if we test $n_B$ Binomial callers per run, we might have fewer than $n_B$ cases that report two, instead of one, Binomial clusters.
+
+Results from $n=1470$ simulations are shown, where the proportion of tumours - out of 30 per square - that are correctly associated to $K=1$ is reported. 
+
+![Statistical characteristics of the methods used in PCAWG.](./weme_test.png)
+
+We observe that the correct model with $K_{WeMe}=1$ is inferred only when $n_B < n_{BB}$ - i.e., more Beta-Binomial than Binomial models are adopted. More importantly, the PCAWG setup ($n_B=2$ and $n_{BB}=5$) shows 10% probability of determining a consensus clustering consistent with a monoclonal tumour, which means that in 90% of the cases the WeMe results are over-estimating the tumour complexity due to the adoption of more Binomial than Beta-Binomial models. 
+
+The complete simulation to generate the figure above can be run using. The simulation and in particular the file `sampler.R` uses the same code and functions we reported and explained here.
+
+```{bash, eval = FALSE}
+# Run simulation over grid
+Rscript runner.R
+# Generate Figure 2 of the main text
+Rscript Main_Text.R
+# Generate panels ab of supplementary figure S2
+# Hosts a version of fit_Binomial that learns only phi and has p fixed
+Rscript likelihood_map.R
+```
+

@@ -1,0 +1,188 @@
+---
+title: "Pyclone-VI fitting"
+output: 
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
+
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE
+)
+```
+
+
+## Building Pyclone input
+
+In order to rerun the clustering assignments with pyclone-vi we first format the data to create the right input files.
+
+```{r}
+format_to_pyclone <-  function(xx,purity){
+
+  library(dplyr)
+  
+  
+  # Format data for pyclone, we are using everything as it was clonal
+  mutation_id <- paste0("chr",xx$Chromosome, ":", xx$Start_position, ":", xx$Start_position, ":", round(xx$ccf,3), ":", xx$gene, ":", xx$isdriver)
+  ref_counts <-  xx$t_ref_count
+  alt_counts <- xx$t_alt_count
+  sample_id <- xx$Tumor_Sample_Barcode
+  major_cn <- xx$major_cn
+  minor_cn <-  xx$minor_cn
+  normal_cn <-  2
+  tumour_content <- purity
+  gene_symb <- xx$gene
+
+  df <-  data.frame(
+    mutation_id = mutation_id,
+    ref_counts = ref_counts,
+    alt_counts = alt_counts,
+    sample_id = sample_id,
+    major_cn = as.integer(major_cn),
+    minor_cn = as.integer(minor_cn),
+    normal_cn = as.integer(normal_cn),
+    tumour_content = tumour_content,
+    gene_symb = gene_symb
+  )
+  
+  # Before returning the dataframe we filter NAs in CNV and NV/NR values
+  return(df %>%  filter(!is.na(major_cn), !is.na(ref_counts), !is.na(alt_counts)) %>% unique() %>%
+           filter(!duplicated(mutation_id)) %>%  unique())
+
+}
+
+```
+
+## Loading input data
+
+Here we assume you have the data as described in the `PCAWG data` vignette, the input here is a list of data.frame for each sample in the object `snvs_list`. For the metadata and the pyclone-vi installation the code is presented in the `Germline overdispersion analysis` vignette.
+
+```{r, eval = FALSE}
+library(tidyverse)
+
+# this file is produced at the end of the first vignete
+maf_ccf <-  readr::read_csv("../processed_data/maf_subclone_ccf.csv.gz")
+
+# you can download this file by running a chunk in Germline overdispersion analysis vignette
+meta <-  readr::read_tsv("../germline_overdispersion_analysis/meta.tar.gz") %>% split(., .$samplename)
+
+snvs_list <- maf_ccf %>% split(., .$Tumor_Sample_Barcode)
+
+meta <-  meta[names(snvs_list)]
+
+names <- names(snvs_list)
+
+```
+
+
+```{r, eval = FALSE}
+
+
+meta <- lapply(meta, function(x) x$purity)
+
+py_clone_VI <-  mapply(snvs_list[1:32], meta,FUN = function(x,y) format_to_pyclone(x, y), SIMPLIFY = F)
+
+mapply(py_clone_VI, names(py_clone_VI)[1:32], FUN = function(x,y) {
+
+  dir.create(y, showWarnings = F)
+  write.table(x, file = paste0("./", y, "/pyclone_input.tsv"), sep = "\t", row.names = F, quote = F)
+
+})
+```
+
+## Running the actual analysis
+
+We then fit the pyclone-vi model and plot the data. The pyclone running script is written in the file `pyclone_refits/pyclone.sh`
+
+```{r}
+run_pyclone <- function(x){
+  
+  # run the script in each directory and go back to the original wd
+  setwd(x)
+  if(!file.exists("pyclone_output.tsv"))
+    tryCatch( system("bash ../pyclone.sh ")
+      ,finally = setwd("..")
+    ) 
+  else 
+    setwd("..")
+}
+
+plot_pyclone <- function(x){
+  library(patchwork)
+  library(tidyverse)
+  # rplot ccf histogram in each directory and go back to the original wd
+  setwd(x)
+    
+    inp <-  readr::read_tsv("pyclone_output.tsv") %>% separate(col = mutation_id,
+                                                               into = c("chr", "from", "to", "ccf", "gene", "is_driver"),
+                                                               sep = ":")
+    
+    # Clusters cellular prevalence plot
+    p1 <-  ggplot(inp, aes(x = cellular_prevalence, fill = cluster_id %>% paste)) +
+      geom_histogram() + theme_bw() + scale_fill_brewer("Cluster", palette = "Set1") + 
+      ggtitle( paste0("Pyclone clustering ", inp$sample_id %>% unique()) )
+    
+    # As pyclone just returns the CCF per cluster we are using the PCAWG estimated CCF per mutation
+    p2 <- ggplot(inp, aes(x = ccf %>% as.numeric, fill = cluster_id %>% paste)) +
+      geom_histogram(bins = 100) + theme_bw() + scale_fill_brewer("Cluster", palette = "Set1") + 
+      ggtitle( paste0("Pyclone CCF ", inp$sample_id %>% unique()) ) + xlab("CCF") 
+      
+    # Assamble and save the plots
+    p12 <- p1 / p2
+    
+    p12 %>%  ggplot2::ggsave(filename = "pyclone_plot.pdf", units = "px", device = "pdf", width = 2400, height = 3600)
+    
+    setwd("..")
+    
+    return(p12)
+ 
+  
+}
+```
+
+Here we use the package [easypar](https://github.com/caravagn/easypar) to implement parallel execution. For the sake of compiling the vignette we are just running the first 32 samples.
+
+```{r, results='hide', message=FALSE, eval = FALSE}
+easypar::run(lapply(names[1:32] , list), FUN = run_pyclone, filter_errors = F, export = NULL,parallel = T,
+             cores.ratio = 0.6)
+plots <- easypar::run(lapply(names[1:32] , list), FUN = plot_pyclone, filter_errors = F, export = NULL,parallel = T,
+             cores.ratio = 0.6)
+```
+We then assemble the results in a data.frame
+
+```{r, eval = FALSE}
+read_pyclone_BB_res <- function(x) 
+{
+  readr::read_tsv(file.path(x, "pyclone_output.tsv"))
+}
+```
+
+
+```{r, eval = FALSE}
+all_pyclone_BB <-  easypar::run(lapply(names, list),FUN =  read_pyclone_BB_res, export = NULL, filter_errors = F )
+
+saveRDS(all_pyclone_BB, file = "./pyclone_BB_all.rds")
+
+```
+
+```{r, include = FALSE}
+
+plots <- readRDS("plots_pyclone_64.rds")[1:32]
+
+```
+
+
+## Plots
+
+```{r, message=FALSE, warning=FALSE, prompt=FALSE, results='hide', figures-side, fig.show="hold", out.width="50%"}
+require(ggpubr)
+
+plots
+
+```
+

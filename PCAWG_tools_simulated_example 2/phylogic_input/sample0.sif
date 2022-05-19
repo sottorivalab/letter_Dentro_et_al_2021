@@ -1,0 +1,2 @@
+sample	maf_fn	seg_fn	cellularity	timepoint
+sample0	./phylogic_input/sample0_input.txt		0.8	0
