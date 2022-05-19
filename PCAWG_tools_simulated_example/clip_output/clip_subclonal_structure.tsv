@@ -1,2 +1,9 @@
 cluster_index	num_SNV	cellular_prevalence
+<<<<<<< HEAD
 0	9996	0.798
+=======
+0	1062	0.9975131826742
+1	669	0.840515695067265
+2	669	0.718828101644245
+3	582	0.558
+>>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301

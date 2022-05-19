@@ -1,3 +1,8 @@
 cluster	n_ssms	proportion
+<<<<<<< HEAD
 1	6717	0.789552
 2	3283	0.624588
+=======
+1	2678	0.42912
+2	299	0.0651525
+>>>>>>> 0deecbe0cfefa5af09b4a568f992ccadefbc0301
