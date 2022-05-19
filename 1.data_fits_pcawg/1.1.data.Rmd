@@ -1,0 +1,185 @@
+---
+title: "Data gathering"
+
+output:   
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
+---
+
+```{r global-options, include=FALSE}
+knitr::opts_chunk$set( warning=FALSE, message=FALSE)
+```
+
+Here we gather the data released by the PCAWG consortium, describing each files we used and providing code to produce a merged `csv` file that contains results from tumour subclonal deconvolution, i.e., mutations mapped to clusters (for each sample). 
+
+This is the file we then use for all our downstream analysis.
+
+# Data download
+
+For all our analysis we used the ICGC portion of the PCAWG data which is  available in the [ICGC data portal](https://dcc.icgc.org/) under controlled access.
+
+## Subclonal reconstruction
+
+The first set of files we use are [consensus subclonal reconstructions](https://dcc.icgc.org/releases/PCAWG/subclonal_reconstruction), which come as `tar.gz` files:
+
+```{bash eval=FALSE}
+tar -C subclones_data/ -zxvf 20170325_consensus_subclonal_reconstruction_beta1.icgc.controlled.tar.gz
+
+tar -C subclones_data/ -xvf 20170325_consensus_subclonal_reconstruction_beta1_mutccf.icgc.controlled.tar.gz
+```
+
+This will get us the following files for each sample:
+
+* `{sample_barcode}_cluster_assignments.txt.gz`
+* `{sample_barcode}_mutation_timing.txt.gz`
+* `{sample_barcode}_subclonal_structure.txt.gz`
+* `{sample_barcode}_mutation_ccf.txt.gz`
+
+## Metadata and MAF file
+
+Other files we need are files from consensus somatic calls, timing data, sample sheets, annotations and drivers:
+
+* `final_consensus_passonly.snv_mnv_indel.icgc.public.maf.gz` from [here](https://dcc.icgc.org/releases/PCAWG/consensus_snv_indel)
+* `2018-07-25-driversTiming.icgc.controlled.txt` from [here](https://dcc.icgc.org/releases/PCAWG/evolution_and_heterogeneity)
+* `pcawg_sample_sheet.tsv` from [here](https://dcc.icgc.org/releases/PCAWG/donors_and_biospecimens)
+* `icgc_sample_annotations_summary_table.txt` from [here](https://dcc.icgc.org/releases/PCAWG/evolution_and_heterogeneity)
+* `TableS3_panorama_driver_mutations_ICGC_samples.public.tsv.gz` from [here](https://dcc.icgc.org/releases/PCAWG/driver_mutations)
+
+# Process data
+
+We first get the barcodes from the `subclones_data` directory.
+
+```{r}
+files <- list.files("subclones_data", pattern = "_ccf.txt.gz")
+barcodes <- lapply(files, function(x) strsplit(x, "_mutation")[[1]][1])
+barcodes <- unlist(barcodes)
+```
+
+Now we merge all subclonal reconstruction files, and for each mutation in each sample we get a CCF value, a cluster assignment and its probability. We also flag mutations that are annotated as drivers. 
+
+> We noticed some differences between the various files that reported driver mutations. We therefore took the conservative approach of taking the intersection of these 2 files:  `TableS3_panorama_driver_mutations_ICGC_samples.public.tsv.gz` and  `2018-07-25-driversTiming.icgc.controlled.txt`.
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(glue)
+
+#read in drivers files
+drivers1 <-
+  fread("metadata/TableS3_panorama_driver_mutations_ICGC_samples.public.tsv.gz") %>%
+  filter(top_category == "mutational") %>%
+  mutate(isdriver = TRUE)
+
+drivers <-
+  fread("metadata/2018-07-25-driversTiming.icgc.controlled.txt") %>%
+  separate(ID, c("genome", "gencode", "gene", "ensemblegeneid"), sep = "::") %>%
+  mutate(isdriver = TRUE) %>%
+  filter(!is.na(CLS))  %>%
+  filter(start %in% drivers1$pos)
+
+metadata <- fread("metadata/pcawg_sample_sheet.tsv") %>%
+  separate(dcc_project_code, c("ctype", "country"), sep = "-") %>%
+  select(icgc_sample_id, aliquot_id, ctype)
+
+process_files <- function(barcode) {
+  #read in files
+  ccf <- fread(glue("subclones_data/{barcode}_mutation_ccf.txt.gz"))
+  clust_assignments <-
+    fread(glue("subclones_data/{barcode}_cluster_assignments.txt.gz"))
+  muttime <-
+    fread(glue("subclones_data/{barcode}_mutation_timing.txt.gz")) %>%
+    #remove the SV's
+    filter(mut_type != "SV") %>%
+    #we are only interested in subclonal vs clonal so remove earl/late annotation
+    mutate(clonality = ifelse(timing == "subclonal", "subclonal", "clonal")) %>%
+    dplyr::select(chromosome, position, timing, clonality)
+  
+  
+  #filter driver file for barcode
+  drivers_temp <- drivers %>%
+    filter(sample == barcode) %>%
+    dplyr::rename(chromosome = seqnames, position = start) %>%
+    select(chromosome, position, gene) %>%
+    mutate(position = as.numeric(position)) %>%
+    mutate(isdriver = TRUE)
+  
+  #pull out the cluster assignment for each mutation
+  clusters <-
+    dplyr::select(clust_assignments, starts_with("cluster"))
+  clust_assignments <-
+    dplyr::select(clust_assignments, -starts_with("cluster"))
+  clust_assignments$cluster <- paste0("cluster", max.col(clusters))
+  clust_assignments$prob <- apply(clusters, 1, max)
+  clust_assignments <-
+    select(clust_assignments, -chromosome2, -position2)
+  
+  ccf <- select(ccf, -chromosome2, -position2)
+  
+  #get cancer type
+  cancer_type <-
+    filter(metadata, aliquot_id == barcode) %>% pull(ctype)
+  
+  dfbarcode <-
+    left_join(ccf, clust_assignments, by = c("chromosome", "position"))
+  dfbarcode <-
+    left_join(dfbarcode, drivers_temp, by = c("chromosome", "position"))
+  dfbarcode <-
+    left_join(dfbarcode, muttime, by = c("chromosome", "position"))
+  dfbarcode$sample_id_pcawg <- barcode
+  dfbarcode$ct <- cancer_type
+  return(as.data.table(dfbarcode))
+}
+
+df <-
+  parallel::mclapply(barcodes, process_files, mc.cores = 10) %>% rbindlist()
+```
+
+For downstream analysis, to be consistent with Dentro et al. we only analyze samples with `nrpcc > 10` (number of reads per chromosomal copy).
+
+```{r}
+sample_annotations <-
+  fread("metadata/icgc_sample_annotations_summary_table.txt") %>%
+  filter(nrpcc > 10) %>%
+  dplyr::rename(Tumor_Sample_Barcode = tumour_aliquot_id)
+
+df <- df %>%
+  filter(sample_id_pcawg %in% sample_annotations$Tumor_Sample_Barcode)
+
+fwrite(df, file = "processed_data/subclone_ccf.csv.gz")
+```
+
+Finally we map this file to the consensus variant calls MA,F and add a binary column indicating whether the mutation is a subclonal driver or not.
+
+```{r}
+maf <-
+  fread("final_consensus_passonly.snv_mnv_indel.icgc.public.maf.gz")
+
+maf_ccf <- df %>%
+  dplyr::rename(
+    Chromosome = chromosome,
+    Start_position = position,
+    Tumor_Sample_Barcode = sample_id_pcawg
+  ) %>%
+  left_join(maf,
+            by = c("Chromosome", "Start_position", "Tumor_Sample_Barcode"))
+
+maf_ccf <- left_join(
+  maf_ccf,
+  sample_annotations %>% select(Tumor_Sample_Barcode, icgc_sample_id, histology_abbreviation),
+  by = "Tumor_Sample_Barcode"
+)
+
+maf_ccf <- maf_ccf %>%
+  mutate(issubclonaldriver = ifelse(clonality == "subclonal" &
+                                      isdriver == TRUE, TRUE, FALSE))
+
+fwrite(maf_ccf, file = "processed_data/maf_subclone_ccf.csv.gz")
+```
+
+In total this gives variant calls mapped to clusters for `r length(unique(maf_ccf$Tumor_Sample_Barcode))` samples.
+
+

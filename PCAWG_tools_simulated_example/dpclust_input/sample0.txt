@@ -1,2 +1,0 @@
-sample	subsample	datafile	cellularity
-sample0	01	./sample0_input.txt	0.8
