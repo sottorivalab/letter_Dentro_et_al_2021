@@ -10,10 +10,6 @@ output:
 ---
 
 
-
-
-**Other required packages.**
-
 ```{r, message=FALSE, results='hide', echo=FALSE}
 set.seed(1234)
 

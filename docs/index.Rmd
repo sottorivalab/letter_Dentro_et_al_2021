@@ -25,7 +25,7 @@ Each article provides the explanation for reproducing a particular point in the 
 * Data generation and PCAWG CCF and clustering plots
 * Germline overdispersion analysis
 * WeMe consensus for beta-binomial vs binomial models
-* WeMe consensus for a subset of deconvolution methods used in the paper
+* WeMe consensus with the deconvolution methods used in the paper
 * Pyclone reanalysis
 * Figure generation
 

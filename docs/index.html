@@ -9,7 +9,7 @@
     
     <title>Matters arising Dentro et al.</title>
 
-        <script src="site_libs/header-attrs-2.11/header-attrs.js"></script>
+        <script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
         <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="site_libs/bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet" />
@@ -128,7 +128,7 @@
       <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
         <div class="container">
           <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
@@ -138,7 +138,7 @@
           <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
               <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           PCAWG analysis
            
           <span class="caret"></span>
@@ -156,7 +156,7 @@
         <a href="germline_overdispersion_analysis.html">Overdispersion Analysis</a>
       </li>
       <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           WeMe simulations
            
           <span class="caret"></span>
@@ -174,7 +174,7 @@
         <a href="pyclone_vi_fits.html">Pyclone reclustering</a>
       </li>
       <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Figures
            
           <span class="caret"></span>
@@ -222,17 +222,10 @@
 <li>Data generation and PCAWG CCF and clustering plots</li>
 <li>Germline overdispersion analysis</li>
 <li>WeMe consensus for beta-binomial vs binomial models</li>
-<li>WeMe consensus for a subset of deconvolution methods used in the paper</li>
+<li>WeMe consensus with the deconvolution methods used in the paper</li>
 <li>Pyclone reanalysis</li>
 <li>Figure generation</li>
 </ul>
-<p>We provide a docker image with everything installed to follow the vignettes in the website. It provides a convenient RStudio server interface to run the analysis (built upon <code>rocker/tidyverse</code>):</p>
-<pre class="bash"><code>
-# user is by default rstudio
-# you can then connect to localhost:8787 on your machine 
-# and have an Rstudio server with all the packages ready  
-docker run -p 8787:8787 -v$(pwd):/home/rstudio/workspace:rw -e PASSWORD=yourpasswordhere  smilite/letter_cell
-</code></pre>
 </div>
 
    
