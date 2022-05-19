@@ -1,7 +1,6 @@
 name: "personal-website"
 output_dir: "."
 navbar:
-  title: "Letter"
   left:
   - text: "PCAWG analysis"
     menu:
