@@ -367,7 +367,7 @@ Tarone_Boostrap <-
 
 To illustrate how the figure is made, we released a sample dataset for a single patient and we will explain how the panels are made.
 
-We start by plotting the density and the histograms of the fitted distribution. To fit the binomial and beta-binomial here we used ![Bmix](httpshttps://caravagnalab.github.io/BMix/) which for one components performs just a simple numerical optimization of the Negative Log-Likelihood (NLL). Another problem is the presence of homozygous SNPs in around VAF=1 and technical artifact around VAF=0. In order to remove themwe filter SNPs at a frequency < 0.12 and > 0.88, this provides a decent result.
+We start by plotting the density and the histograms of the fitted distribution. To fit the binomial and beta-binomial here we used [Bmix](httpshttps://caravagnalab.github.io/BMix/) which for one components performs just a simple numerical optimization of the Negative Log-Likelihood (NLL). Another problem is the presence of homozygous SNPs in around VAF=1 and technical artifact around VAF=0. In order to remove themwe filter SNPs at a frequency < 0.12 and > 0.88, this provides a decent result.
 
 ```{r}
 require(dplyr)
