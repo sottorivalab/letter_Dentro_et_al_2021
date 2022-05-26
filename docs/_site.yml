@@ -5,27 +5,26 @@ navbar:
   - text: "PCAWG analysis"
     menu:
     - text: "Input preparation"
-      href: data.html
+      href: 1.1data.html
     - text: "PCAWG fits"
-      href: fits.html
+      href: 1.2.fits.html
   - text: "Overdispersion Analysis"
-    href: germline_overdispersion_analysis.html
+    href: 2.germline_overdispersion_analysis.html
   - text: "WeMe simulations"
     menu:
     - text: "Clustering simulations"
-      href: CC_overdispersion.html
+      href: 3.1.CC_overdispersion.html
     - text: "Simulations of PCAWG methods"
-      href: Example_simulated.html
+      href: 3.2.Example_simulated.html
   - text: "Pyclone reclustering"
-    href: pyclone_vi_fits.html
+    href: 4.PycloneVI_refits.html
   - text: "Figures"
     menu:
-    - text: "Figure 3"
-      href: figure_3_s4.html
+    - text: "Figure 3 and S4"
+      href: 5.1.figure_3_s4.html
     - text: "Figure S1"
-      href: figure_s1.html        
-    - text: "Figure S2"
-      href: figure_s2.html
-    - text: "Figure S4"
-      href: figure_s4.html     
+      href: 5.2.figure_s1.html        
+    - text: "Figure S3"
+      href: 5.3.figure_s3.html
+
         

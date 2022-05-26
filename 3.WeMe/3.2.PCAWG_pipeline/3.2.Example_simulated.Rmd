@@ -10,7 +10,7 @@ output:
 ---
 
 
-```{r, message=FALSE, results='hide', echo=FALSE}
+```{r, message=FALSE, results='hide', warning=FALSE, error=FALSE}
 set.seed(1234)
 
 # Used packages
@@ -79,7 +79,7 @@ simulate_data = function(overdispersion = 0.01,
 ```{r}
 # Poisson-distributed coverage
 
-rhos <- readr::read_tsv("../rho_selected_cases.tsv")
+rhos <- readr::read_tsv("../../rho_selected_cases.tsv")
 
 # we get a tail value
 overdispersion <- rhos$rho %>% quantile(0.95)
@@ -1115,13 +1115,6 @@ We provide code to reproduce the actual simulations with more replicates (not ru
 Rscript run_simulation.R
 ```
 
-This will generate $10$ folders named `sim_[1-NREPS]` with all the inputs and results, together with  file `p_sim.rds` to plot  panel  Supplementary Figure S2c. 
-
-After running the example code above, together with the simulation in the vignette *Clustering simulations*, the last command to generate Supplementary Figure S2
-
-```{bash, eval = FALSE}
-Rscript figure_S2.R
-```
+This will generate $50$ folders named `sim_[1-NREPS]` with all the inputs and results, together with  file `p_sim.rds` to plot panel  a-b Supplementary Figure 2. 
 
 
-![Supplementary Figure S2](figure_S2.png)

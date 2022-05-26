@@ -1,0 +1,134 @@
+# Motivation
+
+We discuss here PCAWG consensus clustering, re-implemented in simpler form.
+
+An automatic runnable  pipeline was never released by PCAWG; therefore, the best we could achieve was a re-implementation of part of it. In order to reproduce the very same pipelines we have found missing details regarding model selection procedures (e.g., with CliP),  specific inputs  to build the files used for clustering (e.g., with Sclust), and other general limitations. 
+
+# Installation procedure
+
+  
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+```
+
+
+Install Ccube (in R).
+```{r, eval = FALSE}
+devtools::install_github('keyuan/ccube@6ad86869d8967ed4b1df25f4a9837c879c5b2601')
+```
+
+Install DPClust (in R).
+```{r, eval = FALSE}
+devtools::install_github('Wedge-Oxford/dpclust@75f5d7ef1e3e53585f86801fde76dd4c4aa86324')
+```
+
+Install PyClone-VI (via shell, with mini/anaconda).
+
+```{bash, eval = FALSE}
+
+# Clone repository 
+git clone https://github.com/Roth-Lab/pyclone-vi.git
+
+# We assume you have mini/anaconda installed, for more information please refer to the pyclone-vi README
+cd pyclone-vi
+
+# Environment, create and activate
+conda create -c conda-forge -n pyclone-vi --file requirements.txt --yes
+source activate pyclone-vi
+
+# Installation
+pip install git+https://github.com/Roth-Lab/pyclone-vi.git
+
+cd ..
+```
+
+Install CLiP.
+
+```{bash}
+git clone git@github.com:wwylab/CliP.git
+
+```
+
+Install CTPsingle. (unfortunately some dependencies are archived on CRAN, so you have to install them manually, good luck if you have an M1 macbook!)
+
+```{bash}
+git clone git@github.com:nlgndnmz/CTPsingle.git
+```
+
+Install PhylogicNDT
+
+```{bash}
+git clone https://github.com/broadinstitute/PhylogicNDT.git
+
+```
+
+As it uses python 2.7 I suggest creating a conda environment just for it
+
+```{bash}
+conda create --name phylogic python=2.7
+
+source activate phylogic
+
+pip install setuptools wheel
+
+cd PhylogicNDT
+
+pip install -r req
+
+```
+
+Install PhyloWGS
+
+```{bash}
+git clone git@github.com:morrislab/phylowgs.git
+```
+
+also here is wise to make a conda env
+
+```{bash}
+conda create --name phylowgs python=2.7
+
+source activate phylowgs
+```
+
+
+```{bash}
+pip install numpy scikit-learn
+
+pip install --user ete2
+
+cd phylowgs
+
+g++ -o mh.o -O3 mh.cpp  util.cpp `gsl-config --cflags --libs`
+
+```
+
+Install Sclust (unfortunately it needs to be installed manually)
+
+```{bash}
+
+wget http://www.uni-koeln.de/med-fak/sclust/Sclust.tgz
+
+tar -xvf Sclust.tgz
+
+cd Sclust/src/
+  
+#I had to compile against a newer version of openBlas, but on old systems it might work as it is
+make
+
+make test
+```
+
+```{bash}
+conda create -n svclone -c bioconda -c conda-forge svclone
+```
+
+Install cloneHD
+
+```{bash}
+
+wget https://github.com/andrej-fischer/cloneHD/releases/download/v1.17.8/cloneHD-v1.17.8.tar.gz
+
+tar -xvf cloneHD-v1.17.8.tar.gz
+
+```

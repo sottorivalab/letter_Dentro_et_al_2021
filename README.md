@@ -4,14 +4,14 @@ This repository contains the code used to produce all the analyses and figures i
 
 Each article provides the explanation for reproducing a particular point in the analysis. They cover the following points:
 
-* Data generation and PCAWG CCF and clustering plots
-* Germline overdispersion analysis
-* WeMe consensus for beta-binomial vs binomial models
-* WeMe consensus with the deconvolution methods used in the paper
-* Pyclone reanalysis
-* Figure generation
+* Data generation and PCAWG CCF and clustering plots (1.data_fits_pcawg/1.1.data.Rmd, 1.data_fits_pcawg/1.2.fits.Rmd)
+* Germline overdispersion analysis (2.germline_overdispersion/2.germline_overdispersion_analysis.Rmd)
+* WeMe consensus for beta-binomial vs binomial models (3.Weme/3.1Binomila_BetaBinomial/3.1.CC_overdispersion.Rmd)
+* WeMe consensus with the deconvolution methods used in the paper (3.Weme/3.2.PCAWG_pipeline/3.2.Example_simulated.Rmd)
+* Pyclone re-analysis (4.PycloneVI_refits/4.pyclone_vi_fits.Rmd) 
+* Figure generation (5.Figures/figure_*.Rmd)
 
-We also release some processed dataset obtained from the analysis of overdispesion in germline SNPs (everything can be reproduced by following), in particular:
+We also release some processed dataset obtained from the analysis of overdispesion in germline SNPs in particular:
 
 * `rho_selected_cases.tsv` a text file with the rho values for 41 selected sample
 * `samples_letter.rda` which contains the tumour aliquot ids of the 41 sample
