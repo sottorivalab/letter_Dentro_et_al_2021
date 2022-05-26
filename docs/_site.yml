@@ -5,7 +5,7 @@ navbar:
   - text: "PCAWG analysis"
     menu:
     - text: "Input preparation"
-      href: 1.1data.html
+      href: 1.1.data.html
     - text: "PCAWG fits"
       href: 1.2.fits.html
   - text: "Overdispersion Analysis"
@@ -26,5 +26,3 @@ navbar:
       href: 5.2.figure_s1.html        
     - text: "Figure S3"
       href: 5.3.figure_s3.html
-
-        
