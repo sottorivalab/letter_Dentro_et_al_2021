@@ -7,7 +7,7 @@ Each article provides the explanation for reproducing a particular point in the 
 * Data generation and PCAWG CCF and clustering plots (1.data_fits_pcawg/1.1.data.Rmd, 1.data_fits_pcawg/1.2.fits.Rmd)
 * Germline overdispersion analysis (2.germline_overdispersion/2.germline_overdispersion_analysis.Rmd)
 * WeMe consensus for beta-binomial vs binomial models (3.Weme/3.1Binomila_BetaBinomial/3.1.CC_overdispersion.Rmd)
-* WeMe consensus with the deconvolution methods used in the paper (3.Weme/3.2.PCAWG_pipeline/3.2.Example_simulated.Rmd)
+* WeMe consensus with the deconvolution methods used in the paper (3.Weme/3.2.PCAWG_pipeline/3.2.Example_simulated.Rmd, we also added a install_info.Rmd with some info about installing the required software)
 * Pyclone re-analysis (4.PycloneVI_refits/4.pyclone_vi_fits.Rmd) 
 * Figure generation (5.Figures/figure_*.Rmd)
 
